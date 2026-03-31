@@ -1,0 +1,4 @@
+---
+vm_name: "{{ guest_name | default('vm01') }}"
+operation: snapshot
+snapshot_name: ""

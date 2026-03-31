@@ -21,6 +21,12 @@
       - role: controller_inventory_sources
         var: controller_inventory_sources
         tags: inventory_sources
+      - role: controller_hosts
+        var: controller_hosts
+        tags: hosts
+      - role: controller_job_templates
+        var: controller_templates
+        tags: job_templates
 
   pre_tasks:
     - name: Load config-as-code variables

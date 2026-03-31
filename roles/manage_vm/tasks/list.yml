@@ -1,0 +1,10 @@
+---
+- name: List snapshots
+  ansible.builtin.command:
+    cmd: "virsh snapshot-list {{ vm_name }} --name"
+  changed_when: false
+  register: snapshot_list
+
+- name: Display snapshots
+  ansible.builtin.debug:
+    msg: "{{ (snapshot_list.stdout_lines | length > 0) | ternary(snapshot_list.stdout_lines, ['No snapshots found for ' + vm_name]) }}"

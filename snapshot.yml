@@ -1,0 +1,17 @@
+---
+- name: Snapshot VM for pre-patching
+  hosts: all
+  gather_facts: true
+  become: true
+
+  vars:
+    operation: snapshot
+    snapshot_name: ""
+
+  tasks:
+    - name: "Run {{ operation }} on {{ vm_name }}"
+      ansible.builtin.include_role:
+        name: manage_vm
+      vars:
+        vm_name: "{{ item }}"
+      loop: "{{ vm_targets }}"

@@ -4,6 +4,10 @@ controller_inventories:
     description: Windows hosts from Active Directory in the Cheeseburgia lab
     organization: Default
 
+  - name: Cheeseburgia Hypervisor
+    description: KVM hypervisor for the Cheeseburgia lab
+    organization: Default
+
 controller_inventory_sources:
   - name: Active Directory - Cheeseburgia
     description: Windows hosts discovered from Active Directory
@@ -14,3 +18,8 @@ controller_inventory_sources:
     credential: Windows AD Credential
     overwrite: true
     update_on_launch: true
+
+controller_hosts:
+  - name: "{{ lookup('ansible.builtin.env', 'HYPERVISOR_HOST') }}"
+    inventory: Cheeseburgia Hypervisor
+    enabled: true

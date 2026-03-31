@@ -1,0 +1,14 @@
+---
+- name: Validate snapshot name provided
+  ansible.builtin.assert:
+    that: snapshot_name | length > 0
+    fail_msg: "snapshot_name must be provided for delete_snapshot operation"
+
+- name: Delete snapshot
+  ansible.builtin.command:
+    cmd: "virsh snapshot-delete {{ vm_name }} --snapshotname {{ snapshot_name }}"
+  changed_when: true
+
+- name: Display delete result
+  ansible.builtin.debug:
+    msg: "Deleted snapshot {{ snapshot_name }} from {{ vm_name }}"

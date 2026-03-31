@@ -1,0 +1,16 @@
+---
+- name: Generate snapshot name
+  ansible.builtin.set_fact:
+    _snapshot_name: "{{ snapshot_name | default('', true) | ternary(snapshot_name, vm_name + '-' + ansible_date_time.iso8601_basic_short) }}"
+
+- name: Create snapshot
+  ansible.builtin.command:
+    cmd: >-
+      virsh snapshot-create-as {{ vm_name }}
+      --name {{ _snapshot_name }}
+      --description "Pre-patching snapshot created by Winburgia"
+  changed_when: true
+
+- name: Display snapshot name
+  ansible.builtin.debug:
+    msg: "Snapshot created: {{ _snapshot_name }}"

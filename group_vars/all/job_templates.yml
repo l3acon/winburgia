@@ -1,0 +1,17 @@
+---
+controller_templates:
+  - name: "Winburgia | Snapshot VM"
+    description: Create a pre-patching snapshot of a VM on the KVM hypervisor
+    organization: Default
+    project: Winburgia
+    playbook: snapshot.yml
+    inventory: Cheeseburgia Hypervisor
+    credentials:
+      - Hypervisor Credential
+    become_enabled: true
+    ask_variables_on_launch: true
+    extra_vars:
+      vm_targets:
+        - winmember
+      operation: snapshot
+      snapshot_name: ""
