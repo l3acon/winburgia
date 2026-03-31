@@ -1,0 +1,16 @@
+---
+controller_inventories:
+  - name: Cheeseburgia Windows
+    description: Windows hosts from Active Directory in the Cheeseburgia lab
+    organization: Default
+
+controller_inventory_sources:
+  - name: Active Directory - Cheeseburgia
+    description: Windows hosts discovered from Active Directory
+    inventory: Cheeseburgia Windows
+    source: scm
+    source_project: Winburgia
+    source_path: inventory.microsoft.ad.ldap.yml
+    credential: Windows AD Credential
+    overwrite: true
+    update_on_launch: true
