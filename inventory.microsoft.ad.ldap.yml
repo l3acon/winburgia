@@ -10,6 +10,6 @@ attributes:
   operatingSystem: {}
   operatingSystemVersion: {}
 compose:
-  ansible_host: dNSHostName | first | default(cn | first)
+  ansible_host: dNSHostName | default(cn)
 groups:
   windows: true
