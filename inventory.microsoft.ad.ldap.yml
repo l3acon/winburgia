@@ -5,10 +5,10 @@ encrypt: false
 search_base: DC=lab,DC=cheeseburgia,DC=com
 filter: (objectClass=computer)
 attributes:
-  cn: raw
-  dNSHostName: raw
-  operatingSystem: raw
-  operatingSystemVersion: raw
+  cn: {}
+  dNSHostName: {}
+  operatingSystem: {}
+  operatingSystemVersion: {}
 compose:
   ansible_host: dNSHostName | first | default(cn | first)
 groups:
