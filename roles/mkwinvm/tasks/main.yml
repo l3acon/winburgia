@@ -1,0 +1,104 @@
+---
+- name: Ensure genisoimage is installed
+  ansible.builtin.package:
+    name: genisoimage
+    state: present
+  become: true
+
+- name: Query libvirt for current virtual machines
+  community.libvirt.virt:
+    command: list_vms
+  register: virt_status
+
+- name: Shut down VM if it is running
+  community.libvirt.virt:
+    command: destroy
+    name: "{{ win_vm_name }}"
+  when: win_vm_name in virt_status.list_vms
+  failed_when: false
+
+- name: Remove VM if it is defined
+  community.libvirt.virt:
+    command: undefine
+    name: "{{ win_vm_name }}"
+  when: win_vm_name in virt_status.list_vms
+
+- name: Delete previous disk image
+  ansible.builtin.file:
+    path: "{{ win_disk_path }}"
+    state: absent
+
+- name: Create disk image
+  ansible.builtin.command:
+    cmd: "qemu-img create -f qcow2 {{ win_disk_path }} {{ win_vm_disk_size }}G"
+    creates: "{{ win_disk_path }}"
+
+- name: Create temporary directory for unattend files
+  ansible.builtin.file:
+    path: "{{ win_unattend_dir }}"
+    state: directory
+    mode: "0755"
+
+- name: Template autounattend.xml
+  ansible.builtin.template:
+    src: autounattend.xml.j2
+    dest: "{{ win_unattend_dir }}/autounattend.xml"
+    mode: "0644"
+
+- name: Create unattend ISO
+  ansible.builtin.command:
+    cmd: "genisoimage -o {{ win_unattend_iso_path }} -J {{ win_unattend_dir }}/"
+
+- name: Install Windows VM
+  ansible.builtin.command: >
+    virt-install --connect qemu:///system
+    --virt-type kvm
+    --noautoconsole
+    --name {{ win_vm_name }}
+    --ram {{ win_vm_memory }}
+    --vcpus {{ win_vm_vcpus }}
+    --os-variant {{ win_vm_os_variant }}
+    --disk path={{ win_disk_path }},format=qcow2,bus=sata
+    --disk path={{ win_iso_path }},device=cdrom
+    --disk path={{ win_unattend_iso_path }},device=cdrom
+    --network bridge={{ win_vm_bridge }},model=e1000e
+    --graphics {{ win_vm_graphics }}
+    --boot cdrom,hd
+
+- name: Get VM MAC address
+  ansible.builtin.shell: |
+    virsh domiflist {{ win_vm_name }} | awk '/bridge/{print $5}'
+  register: vm_mac_result
+  changed_when: false
+
+- name: Wait for VM to obtain an IP address
+  ansible.builtin.shell: |
+    mac="{{ vm_mac_result.stdout | trim }}"
+    ip neigh show dev {{ win_vm_bridge }} | awk "/$mac/"'{print $1}' | head -1
+  register: vm_ip_result
+  until: vm_ip_result.stdout | trim | length > 0
+  retries: 120
+  delay: 15
+  changed_when: false
+
+- name: Display discovered VM IP
+  ansible.builtin.debug:
+    msg: "Windows VM {{ win_vm_name }} has IP {{ vm_ip_result.stdout | trim }}"
+
+- name: Add Windows VM to inventory
+  ansible.builtin.add_host:
+    name: "{{ win_vm_name }}"
+    ansible_host: "{{ vm_ip_result.stdout | trim }}"
+    groups:
+      - new_windows_vm
+    ansible_connection: winrm
+    ansible_winrm_transport: ntlm
+    ansible_winrm_scheme: http
+    ansible_winrm_port: 5985
+    ansible_user: Administrator
+    ansible_password: "{{ win_admin_password }}"
+
+- name: Clean up temporary unattend directory
+  ansible.builtin.file:
+    path: "{{ win_unattend_dir }}"
+    state: absent

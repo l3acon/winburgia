@@ -1,0 +1,8 @@
+---
+- name: Deploy Windows VM
+  hosts: all
+  gather_facts: true
+  become: true
+
+  roles:
+    - role: mkwinvm

@@ -47,3 +47,56 @@ controller_templates:
       vm_targets:
         - winmember
       snapshot_name: ""
+
+  - name: "Winburgia | Deploy Windows VM"
+    description: Deploy a new Windows VM on the KVM hypervisor
+    organization: Default
+    project: Winburgia
+    playbook: deploy_winvm.yml
+    inventory: Cheeseburgia Hypervisor
+    credentials:
+      - Hypervisor Credential
+    become_enabled: true
+    survey_enabled: true
+    survey_spec:
+      name: Deploy Windows VM Survey
+      description: Parameters for the new Windows VM
+      spec:
+        - question_name: VM Name
+          variable: win_vm_name
+          type: text
+          required: true
+          default: ""
+          question_description: Name for the new Windows VM (e.g. winweb01)
+        - question_name: vCPUs
+          variable: win_vm_vcpus
+          type: integer
+          required: false
+          default: 4
+          min: 1
+          max: 16
+          question_description: Number of virtual CPUs
+        - question_name: Memory (MB)
+          variable: win_vm_memory
+          type: integer
+          required: false
+          default: 16384
+          min: 2048
+          max: 65536
+          question_description: Memory in megabytes
+        - question_name: Disk Size (GB)
+          variable: win_vm_disk_size
+          type: integer
+          required: false
+          default: 60
+          min: 20
+          max: 500
+          question_description: Disk size in gigabytes
+        - question_name: Admin Password
+          variable: win_admin_password
+          type: password
+          required: true
+          default: ""
+          question_description: Administrator password for the new Windows VM
+    extra_vars:
+      win_iso_path: /virt/images/SERVER_EVAL_x64FRE_en-us.iso

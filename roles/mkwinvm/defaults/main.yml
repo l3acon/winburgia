@@ -1,0 +1,21 @@
+---
+win_vm_name: winmember
+win_vm_memory: 16384
+win_vm_vcpus: 4
+win_vm_disk_size: 60
+win_vm_bridge: bridge0
+win_vm_os_variant: win2k22
+win_vm_graphics: vnc
+
+win_iso_path: ""
+win_image_index: 2
+
+win_admin_password: ""
+win_computername: "{{ win_vm_name | upper }}"
+win_timezone: UTC
+win_locale: en-US
+
+storage_path: /var/lib/libvirt/images
+win_disk_path: "{{ storage_path }}/{{ win_vm_name }}.qcow2"
+win_unattend_dir: "/tmp/{{ win_vm_name }}-unattend"
+win_unattend_iso_path: "{{ storage_path }}/{{ win_vm_name }}-unattend.iso"
