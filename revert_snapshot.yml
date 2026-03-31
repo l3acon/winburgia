@@ -1,0 +1,14 @@
+---
+- name: Revert VM to snapshot
+  hosts: all
+  gather_facts: true
+  become: true
+
+  tasks:
+    - name: Restore snapshot for each target VM
+      ansible.builtin.include_role:
+        name: manage_vm
+      vars:
+        vm_name: "{{ item }}"
+        operation: restore
+      loop: "{{ vm_targets }}"

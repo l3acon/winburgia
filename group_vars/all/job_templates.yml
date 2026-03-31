@@ -15,3 +15,35 @@ controller_templates:
         - winmember
       operation: snapshot
       snapshot_name: ""
+
+  - name: "Winburgia | Patch Windows"
+    description: Install critical and security updates on Windows hosts
+    organization: Default
+    project: Winburgia
+    playbook: patch_windows.yml
+    inventory: Cheeseburgia Windows
+    limit: WINMEMBER
+    credentials:
+      - Windows Machine Credential
+    ask_variables_on_launch: true
+    ask_limit_on_launch: true
+    extra_vars:
+      ansible_connection: winrm
+      ansible_winrm_transport: ntlm
+      ansible_winrm_server_cert_validation: ignore
+      ansible_port: 5985
+
+  - name: "Winburgia | Revert Snapshot"
+    description: Revert a VM to a previously created snapshot
+    organization: Default
+    project: Winburgia
+    playbook: revert_snapshot.yml
+    inventory: Cheeseburgia Hypervisor
+    credentials:
+      - Hypervisor Credential
+    become_enabled: true
+    ask_variables_on_launch: true
+    extra_vars:
+      vm_targets:
+        - winmember
+      snapshot_name: ""

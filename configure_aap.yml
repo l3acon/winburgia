@@ -27,6 +27,9 @@
       - role: controller_job_templates
         var: controller_templates
         tags: job_templates
+      - role: controller_workflow_job_templates
+        var: controller_workflows
+        tags: workflow_job_templates
 
   pre_tasks:
     - name: Load config-as-code variables

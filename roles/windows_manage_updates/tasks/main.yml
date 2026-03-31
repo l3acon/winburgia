@@ -1,0 +1,35 @@
+---
+- name: Ensure WUA service is running
+  ansible.windows.win_service:
+    name: wuauserv
+    state: started
+    start_mode: manual
+
+- name: Install Windows Updates Block
+  block:
+    - name: Install Windows Updates
+      ansible.windows.win_updates:
+        category_names: "{{ windows_manage_updates_categories | default(omit) }}"
+        state: "{{ windows_manage_updates_state }}"
+      become: true
+      become_method: ansible.builtin.runas
+      become_user: SYSTEM
+      register: windows_manage_updates_output
+
+    - name: Reboot when required and requested
+      ansible.windows.win_reboot:
+      when:
+        - windows_manage_updates_output.reboot_required
+        - windows_manage_updates_reboot_server | bool
+
+  rescue:
+    - name: Windows update failed
+      ansible.builtin.fail:
+        msg: "Windows update failed: {{ windows_manage_updates_output.msg | default('unknown error') }}"
+      when:
+        - windows_manage_updates_output is failed
+
+  always:
+    - name: Report results
+      ansible.builtin.debug:
+        var: windows_manage_updates_output

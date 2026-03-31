@@ -1,0 +1,29 @@
+---
+controller_workflows:
+  - name: "Winburgia | Patch Windows Workflow"
+    description: Snapshot VM, patch Windows, revert on failure
+    organization: Default
+    ask_variables_on_launch: true
+    extra_vars:
+      vm_targets:
+        - winmember
+    simplified_workflow_nodes:
+      - identifier: snapshot
+        unified_job_template: "Winburgia | Snapshot VM"
+        success_nodes:
+          - patch
+        failure_nodes: []
+        always_nodes: []
+
+      - identifier: patch
+        unified_job_template: "Winburgia | Patch Windows"
+        success_nodes: []
+        failure_nodes:
+          - revert
+        always_nodes: []
+
+      - identifier: revert
+        unified_job_template: "Winburgia | Revert Snapshot"
+        success_nodes: []
+        failure_nodes: []
+        always_nodes: []

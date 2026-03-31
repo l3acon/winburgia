@@ -14,3 +14,10 @@
 - name: Display snapshot name
   ansible.builtin.debug:
     msg: "Snapshot created: {{ _snapshot_name }}"
+
+- name: Export snapshot name as workflow artifact
+  ansible.builtin.set_stats:
+    data:
+      snapshot_name: "{{ _snapshot_name }}"
+      snapshot_vm: "{{ vm_name }}"
+    per_host: false

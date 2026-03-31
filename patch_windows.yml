@@ -1,0 +1,13 @@
+---
+- name: Patch Windows hosts
+  hosts: all
+  gather_facts: false
+
+  roles:
+    - role: windows_manage_updates
+      vars:
+        windows_manage_updates_state: installed
+        windows_manage_updates_reboot_server: true
+        windows_manage_updates_categories:
+          - CriticalUpdates
+          - SecurityUpdates

@@ -1,0 +1,6 @@
+---
+windows_manage_updates_state: "searched"
+windows_manage_updates_categories:
+  - CriticalUpdates
+  - SecurityUpdates
+windows_manage_updates_reboot_server: true
