@@ -1,8 +1,7 @@
 ---
 plugin: microsoft.ad.ldap
 auth_protocol: simple
-tls_mode: ldaps
-cert_validation: ignore
+encrypt: false
 search_base: DC=lab,DC=cheeseburgia,DC=com
 filter: (objectClass=computer)
 attributes:
