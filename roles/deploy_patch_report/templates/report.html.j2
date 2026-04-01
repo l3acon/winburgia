@@ -1,0 +1,167 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Winburgia Patch Report</title>
+  <style>
+    :root {
+      --bg: #0f172a;
+      --surface: #1e293b;
+      --border: #334155;
+      --text: #e2e8f0;
+      --muted: #94a3b8;
+      --accent: #38bdf8;
+      --success: #4ade80;
+      --warn: #fbbf24;
+      --danger: #f87171;
+    }
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body {
+      font-family: 'Segoe UI', system-ui, -apple-system, sans-serif;
+      background: var(--bg);
+      color: var(--text);
+      line-height: 1.6;
+      padding: 2rem;
+    }
+    .container { max-width: 960px; margin: 0 auto; }
+    header {
+      text-align: center;
+      margin-bottom: 2rem;
+      padding-bottom: 1.5rem;
+      border-bottom: 1px solid var(--border);
+    }
+    header h1 {
+      font-size: 1.75rem;
+      font-weight: 600;
+      color: var(--accent);
+    }
+    header p { color: var(--muted); margin-top: 0.25rem; }
+    .cards {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+      gap: 1rem;
+      margin-bottom: 2rem;
+    }
+    .card {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      padding: 1.25rem;
+      text-align: center;
+    }
+    .card .label { font-size: 0.75rem; text-transform: uppercase; letter-spacing: 0.05em; color: var(--muted); }
+    .card .value { font-size: 1.75rem; font-weight: 700; margin-top: 0.25rem; }
+    .card .value.green { color: var(--success); }
+    .card .value.yellow { color: var(--warn); }
+    .card .value.blue { color: var(--accent); }
+    section {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      padding: 1.5rem;
+      margin-bottom: 1.5rem;
+    }
+    section h2 {
+      font-size: 1.1rem;
+      font-weight: 600;
+      margin-bottom: 1rem;
+      color: var(--accent);
+    }
+    table { width: 100%; border-collapse: collapse; }
+    th, td {
+      text-align: left;
+      padding: 0.6rem 0.75rem;
+      border-bottom: 1px solid var(--border);
+      font-size: 0.875rem;
+    }
+    th { color: var(--muted); font-weight: 500; text-transform: uppercase; font-size: 0.7rem; letter-spacing: 0.05em; }
+    tr:last-child td { border-bottom: none; }
+    .badge {
+      display: inline-block;
+      padding: 0.15rem 0.5rem;
+      border-radius: 4px;
+      font-size: 0.75rem;
+      font-weight: 600;
+    }
+    .badge-success { background: rgba(74,222,128,0.15); color: var(--success); }
+    .badge-warn { background: rgba(251,191,36,0.15); color: var(--warn); }
+    footer { text-align: center; color: var(--muted); font-size: 0.8rem; margin-top: 2rem; }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <header>
+      <h1>Winburgia Patch Report</h1>
+      <p>{{ patch_report.fqdn | default(patch_report.host) }} &mdash; {{ patch_report.patched_at }}</p>
+    </header>
+
+    <div class="cards">
+      <div class="card">
+        <div class="label">Host</div>
+        <div class="value blue">{{ patch_report.host }}</div>
+      </div>
+      <div class="card">
+        <div class="label">Updates Found</div>
+        <div class="value yellow">{{ patch_report.found_count }}</div>
+      </div>
+      <div class="card">
+        <div class="label">Updates Installed</div>
+        <div class="value green">{{ patch_report.installed_count }}</div>
+      </div>
+      <div class="card">
+        <div class="label">Reboot Required</div>
+        <div class="value {% if patch_report.reboot_required | bool %}yellow{% else %}green{% endif %}">
+          {{ 'Yes' if patch_report.reboot_required | bool else 'No' }}
+        </div>
+      </div>
+    </div>
+
+    <section>
+      <h2>Categories</h2>
+      <p>{{ patch_report.categories | join(', ') }}</p>
+    </section>
+
+{% if patch_report.updates | default([]) | length > 0 %}
+    <section>
+      <h2>Installed Updates</h2>
+      <table>
+        <thead>
+          <tr>
+            <th>KB</th>
+            <th>Title</th>
+            <th>Categories</th>
+            <th>Status</th>
+          </tr>
+        </thead>
+        <tbody>
+{% for update in patch_report.updates | default([]) %}
+          <tr>
+            <td>{{ update.kb | default('N/A') }}</td>
+            <td>{{ update.title | default('Unknown') }}</td>
+            <td>{{ update.categories | default([]) | join(', ') }}</td>
+            <td>
+{% if update.installed | default(false) | bool %}
+              <span class="badge badge-success">Installed</span>
+{% else %}
+              <span class="badge badge-warn">Skipped</span>
+{% endif %}
+            </td>
+          </tr>
+{% endfor %}
+        </tbody>
+      </table>
+    </section>
+{% else %}
+    <section>
+      <h2>Updates</h2>
+      <p>No individual update details available.</p>
+    </section>
+{% endif %}
+
+    <footer>
+      Generated by Winburgia Automation &bull; Ansible Automation Platform
+    </footer>
+  </div>
+</body>
+</html>

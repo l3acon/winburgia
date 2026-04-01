@@ -1,7 +1,7 @@
 ---
 controller_workflows:
   - name: "Winburgia | Patch Windows Workflow"
-    description: Snapshot VM, patch Windows, revert on failure
+    description: Snapshot VM, patch Windows, generate report, revert on failure
     organization: Default
     ask_variables_on_launch: true
     extra_vars:
@@ -17,9 +17,23 @@ controller_workflows:
 
       - identifier: patch
         unified_job_template: "Winburgia | Patch Windows"
-        success_nodes: []
+        success_nodes:
+          - provision_report_server
         failure_nodes:
           - revert
+        always_nodes: []
+
+      - identifier: provision_report_server
+        unified_job_template: "Winburgia | Provision Report Server"
+        success_nodes:
+          - deploy_report
+        failure_nodes: []
+        always_nodes: []
+
+      - identifier: deploy_report
+        unified_job_template: "Winburgia | Deploy Patch Report"
+        success_nodes: []
+        failure_nodes: []
         always_nodes: []
 
       - identifier: revert

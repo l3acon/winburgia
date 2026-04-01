@@ -1,0 +1,7 @@
+---
+- name: Deploy patch report to IIS
+  hosts: all
+  gather_facts: true
+
+  roles:
+    - role: deploy_patch_report

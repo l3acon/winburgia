@@ -1,0 +1,36 @@
+---
+- name: Provision report server if not already present
+  hosts: all
+  gather_facts: true
+  become: true
+
+  vars:
+    report_vm_name: winreport
+    win_admin_password: ""
+
+  tasks:
+    - name: Check if report VM already exists
+      community.libvirt.virt:
+        command: list_vms
+      register: existing_vms
+
+    - name: Provision report VM
+      ansible.builtin.include_role:
+        name: mkwinvm
+      vars:
+        win_vm_name: "{{ report_vm_name }}"
+        win_vm_memory: 4096
+        win_vm_vcpus: 2
+        win_vm_disk_size: 40
+      when: report_vm_name not in existing_vms.list_vms
+
+    - name: Report server already exists
+      ansible.builtin.debug:
+        msg: "Report server '{{ report_vm_name }}' already provisioned, skipping."
+      when: report_vm_name in existing_vms.list_vms
+
+    - name: Export report server FQDN
+      ansible.builtin.set_stats:
+        data:
+          report_server_fqdn: "{{ report_vm_name | upper }}.lab.cheeseburgia.com"
+        per_host: false

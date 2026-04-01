@@ -1,0 +1,42 @@
+---
+- name: Install IIS web server
+  ansible.windows.win_feature:
+    name: Web-Server
+    state: present
+    include_management_tools: true
+  register: iis_install
+
+- name: Reboot if IIS install requires it
+  ansible.windows.win_reboot:
+  when: iis_install.reboot_required | default(false)
+
+- name: Ensure report site directory exists
+  ansible.windows.win_file:
+    path: "{{ report_site_path }}"
+    state: directory
+
+- name: Template patch report HTML
+  ansible.windows.win_template:
+    src: report.html.j2
+    dest: "{{ report_site_path }}\\index.html"
+
+- name: Ensure IIS site exists
+  community.windows.win_iis_website:
+    name: "{{ report_site_name }}"
+    state: started
+    physical_path: "{{ report_site_path }}"
+    port: "{{ report_site_port }}"
+
+- name: Open firewall for report site
+  community.windows.win_firewall_rule:
+    name: "Patch Report (port {{ report_site_port }})"
+    localport: "{{ report_site_port }}"
+    action: allow
+    direction: in
+    protocol: tcp
+    state: present
+    enabled: true
+
+- name: Display report URL
+  ansible.builtin.debug:
+    msg: "Patch report available at http://{{ ansible_host }}:{{ report_site_port }}/"

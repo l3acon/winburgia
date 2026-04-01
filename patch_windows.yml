@@ -1,7 +1,7 @@
 ---
 - name: Patch Windows hosts
   hosts: all
-  gather_facts: false
+  gather_facts: true
 
   roles:
     - role: windows_manage_updates
@@ -11,3 +11,22 @@
         windows_manage_updates_categories:
           - CriticalUpdates
           - SecurityUpdates
+
+  post_tasks:
+    - name: Build patch report data
+      ansible.builtin.set_fact:
+        patch_report:
+          host: "{{ inventory_hostname }}"
+          fqdn: "{{ ansible_fqdn | default(inventory_hostname) }}"
+          patched_at: "{{ ansible_date_time.iso8601 }}"
+          reboot_required: "{{ windows_manage_updates_output.reboot_required | default(false) }}"
+          installed_count: "{{ windows_manage_updates_output.installed_update_count | default(0) }}"
+          found_count: "{{ windows_manage_updates_output.found_update_count | default(0) }}"
+          categories: "{{ windows_manage_updates_categories }}"
+          updates: "{{ windows_manage_updates_output.updates | default({}) | dict2items | map(attribute='value') | list }}"
+
+    - name: Export patch results as workflow artifact
+      ansible.builtin.set_stats:
+        data:
+          patch_report: "{{ patch_report }}"
+        per_host: false

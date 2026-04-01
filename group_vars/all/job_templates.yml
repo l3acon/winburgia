@@ -48,6 +48,40 @@ controller_templates:
         - winmember
       snapshot_name: ""
 
+  - name: "Winburgia | Provision Report Server"
+    description: Provision the winreport VM if it does not already exist
+    organization: Default
+    project: Winburgia
+    playbook: provision_report_server.yml
+    inventory: Cheeseburgia Hypervisor
+    execution_environment: Winburgia EE
+    credentials:
+      - Hypervisor Credential
+    become_enabled: true
+    ask_variables_on_launch: true
+    extra_vars:
+      report_vm_name: winreport
+      win_admin_password: ""
+      win_iso_path: /virt/images/SERVER_EVAL_x64FRE_en-us.iso
+
+  - name: "Winburgia | Deploy Patch Report"
+    description: Deploy IIS and serve an HTML patch report
+    organization: Default
+    project: Winburgia
+    playbook: deploy_patch_report.yml
+    inventory: Cheeseburgia Windows
+    limit: WINREPORT
+    execution_environment: Winburgia EE
+    credentials:
+      - Windows Machine Credential
+    ask_variables_on_launch: true
+    ask_limit_on_launch: true
+    extra_vars:
+      ansible_connection: winrm
+      ansible_winrm_transport: ntlm
+      ansible_winrm_server_cert_validation: ignore
+      ansible_port: 5985
+
   - name: "Winburgia | Deploy Windows VM"
     description: Deploy a new Windows VM on the KVM hypervisor
     organization: Default
