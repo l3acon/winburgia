@@ -54,6 +54,7 @@ controller_templates:
     project: Winburgia
     playbook: deploy_winvm.yml
     inventory: Cheeseburgia Hypervisor
+    execution_environment: Winburgia EE
     credentials:
       - Hypervisor Credential
     become_enabled: true

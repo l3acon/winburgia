@@ -65,38 +65,17 @@
     --graphics {{ win_vm_graphics }}
     --boot cdrom,hd
 
-- name: Get VM MAC address
-  ansible.builtin.shell: |
-    virsh domiflist {{ win_vm_name }} | awk '/bridge/{print $5}'
-  register: vm_mac_result
-  changed_when: false
+- name: Wait for WinRM on {{ win_vm_fqdn }}
+  ansible.builtin.wait_for:
+    host: "{{ win_vm_fqdn }}"
+    port: 5985
+    timeout: 1800
+    sleep: 15
+  delegate_to: localhost
 
-- name: Wait for VM to obtain an IP address
-  ansible.builtin.shell: |
-    mac="{{ vm_mac_result.stdout | trim }}"
-    ip neigh show dev {{ win_vm_bridge }} | awk "/$mac/"'{print $1}' | head -1
-  register: vm_ip_result
-  until: vm_ip_result.stdout | trim | length > 0
-  retries: 120
-  delay: 15
-  changed_when: false
-
-- name: Display discovered VM IP
+- name: Display VM connectivity
   ansible.builtin.debug:
-    msg: "Windows VM {{ win_vm_name }} has IP {{ vm_ip_result.stdout | trim }}"
-
-- name: Add Windows VM to inventory
-  ansible.builtin.add_host:
-    name: "{{ win_vm_name }}"
-    ansible_host: "{{ vm_ip_result.stdout | trim }}"
-    groups:
-      - new_windows_vm
-    ansible_connection: winrm
-    ansible_winrm_transport: ntlm
-    ansible_winrm_scheme: http
-    ansible_winrm_port: 5985
-    ansible_user: Administrator
-    ansible_password: "{{ win_admin_password }}"
+    msg: "Windows VM {{ win_vm_name }} is reachable at {{ win_vm_fqdn }}:5985"
 
 - name: Clean up temporary unattend directory
   ansible.builtin.file:

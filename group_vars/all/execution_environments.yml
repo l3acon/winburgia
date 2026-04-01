@@ -1,0 +1,7 @@
+---
+controller_execution_environments:
+  - name: Winburgia EE
+    image: quay.io/matferna/winburgia-ee:latest
+    pull: always
+    description: Custom EE with community.libvirt, ansible.windows, and microsoft.ad
+    credential: Quay Registry Credential

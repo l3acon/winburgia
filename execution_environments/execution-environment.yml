@@ -1,0 +1,40 @@
+---
+version: 3
+
+images:
+  base_image:
+    name: registry.redhat.io/ansible-automation-platform-26/ee-minimal-rhel9:latest
+
+options:
+  package_manager_path: /usr/bin/microdnf
+
+dependencies:
+  galaxy:
+    collections:
+      - name: community.libvirt
+      - name: ansible.windows
+      - name: microsoft.ad
+      - name: ansible.posix
+
+additional_build_steps:
+  prepend_builder:
+    - |
+      RUN microdnf install -y --nodocs --setopt install_weak_deps=0 pkgconfig gcc python3.12-devel && \
+          printf '[centos9-crb]\nname=CentOS Stream 9 CRB\nbaseurl=https://mirror.stream.centos.org/9-stream/CRB/x86_64/os/\ngpgcheck=0\nenabled=1\n' > /etc/yum.repos.d/centos9-crb.repo && \
+          printf '[centos9-appstream]\nname=CentOS Stream 9 AppStream\nbaseurl=https://mirror.stream.centos.org/9-stream/AppStream/x86_64/os/\ngpgcheck=0\nenabled=1\n' > /etc/yum.repos.d/centos9-appstream.repo && \
+          printf '[centos9-baseos]\nname=CentOS Stream 9 BaseOS\nbaseurl=https://mirror.stream.centos.org/9-stream/BaseOS/x86_64/os/\ngpgcheck=0\nenabled=1\n' > /etc/yum.repos.d/centos9-baseos.repo && \
+          microdnf install -y --nodocs --setopt install_weak_deps=0 \
+            --disablerepo='ubi-*' \
+            --enablerepo='centos9-*' \
+            libvirt-libs libvirt-devel && \
+          pip3 install --no-cache-dir libvirt-python && \
+          rm -f /etc/yum.repos.d/centos9-*.repo
+  prepend_final:
+    - |
+      RUN printf '[centos9-appstream]\nname=CentOS Stream 9 AppStream\nbaseurl=https://mirror.stream.centos.org/9-stream/AppStream/x86_64/os/\ngpgcheck=0\nenabled=1\n' > /etc/yum.repos.d/centos9-appstream.repo && \
+          printf '[centos9-baseos]\nname=CentOS Stream 9 BaseOS\nbaseurl=https://mirror.stream.centos.org/9-stream/BaseOS/x86_64/os/\ngpgcheck=0\nenabled=1\n' > /etc/yum.repos.d/centos9-baseos.repo && \
+          microdnf install -y --nodocs --setopt install_weak_deps=0 \
+            --disablerepo='ubi-*' \
+            --enablerepo='centos9-*' \
+            libvirt-libs && \
+          rm -f /etc/yum.repos.d/centos9-*.repo

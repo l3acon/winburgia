@@ -24,6 +24,9 @@
       - role: controller_hosts
         var: controller_hosts
         tags: hosts
+      - role: controller_execution_environments
+        var: controller_execution_environments
+        tags: execution_environments
       - role: controller_job_templates
         var: controller_templates
         tags: job_templates

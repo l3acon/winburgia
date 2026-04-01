@@ -12,6 +12,8 @@ win_image_index: 2
 
 win_admin_password: ""
 win_computername: "{{ win_vm_name | upper }}"
+win_vm_domain: lab.cheeseburgia.com
+win_vm_fqdn: "{{ win_computername }}.{{ win_vm_domain }}"
 win_timezone: UTC
 win_locale: en-US
 
