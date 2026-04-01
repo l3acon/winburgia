@@ -18,8 +18,8 @@
         name: mkwinvm
       vars:
         win_vm_name: "{{ report_vm_name }}"
-        win_vm_memory: 4096
-        win_vm_vcpus: 2
+        win_vm_memory: 16384
+        win_vm_vcpus: 4
         win_vm_disk_size: 40
       when: report_vm_name not in existing_vms.list_vms
 
