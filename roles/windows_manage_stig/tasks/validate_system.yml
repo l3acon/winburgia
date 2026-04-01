@@ -70,6 +70,7 @@
     path: "{{ role_path }}/tasks/{{ windows_manage_stig_detected_version }}"
   register: windows_manage_stig_version_tasks_dir
   delegate_to: localhost
+  connection: local
 
 - name: STIG | VALIDATE | Fail with helpful error if version not supported
   ansible.builtin.fail:
