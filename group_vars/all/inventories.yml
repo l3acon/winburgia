@@ -23,3 +23,9 @@ controller_hosts:
   - name: "{{ lookup('ansible.builtin.env', 'HYPERVISOR_HOST') }}"
     inventory: Cheeseburgia Hypervisor
     enabled: true
+
+  - name: WINREPORT
+    inventory: Cheeseburgia Windows
+    enabled: true
+    variables:
+      ansible_host: WINREPORT.lab.cheeseburgia.com
