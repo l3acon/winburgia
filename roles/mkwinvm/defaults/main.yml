@@ -10,7 +10,7 @@ win_vm_graphics: vnc
 win_iso_path: ""
 win_image_index: 2
 
-win_admin_password: ""
+win_admin_password: "{{ lookup('ansible.builtin.env', 'WIN_ADMIN_PASSWORD') | default('', true) }}"
 win_computername: "{{ win_vm_name | upper }}"
 win_vm_domain: lab.cheeseburgia.com
 win_vm_fqdn: "{{ win_computername }}.{{ win_vm_domain }}"

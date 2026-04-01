@@ -57,11 +57,11 @@ controller_templates:
     execution_environment: Winburgia EE
     credentials:
       - Hypervisor Credential
+      - Windows Deploy Credential
     become_enabled: true
     ask_variables_on_launch: true
     extra_vars:
       report_vm_name: winreport
-      win_admin_password: ""
       win_iso_path: /virt/images/SERVER_EVAL_x64FRE_en-us.iso
 
   - name: "Winburgia | Deploy Patch Report"
@@ -147,6 +147,7 @@ controller_templates:
     execution_environment: Winburgia EE
     credentials:
       - Hypervisor Credential
+      - Windows Deploy Credential
     become_enabled: true
     survey_enabled: true
     survey_spec:
@@ -183,11 +184,5 @@ controller_templates:
           min: 20
           max: 500
           question_description: Disk size in gigabytes
-        - question_name: Admin Password
-          variable: win_admin_password
-          type: password
-          required: true
-          default: ""
-          question_description: Administrator password for the new Windows VM
     extra_vars:
       win_iso_path: /virt/images/SERVER_EVAL_x64FRE_en-us.iso

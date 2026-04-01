@@ -6,7 +6,6 @@
 
   vars:
     report_vm_name: winreport
-    win_admin_password: ""
 
   tasks:
     - name: Check if report VM already exists
