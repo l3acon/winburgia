@@ -17,10 +17,9 @@
   when: win_vm_name in virt_status.list_vms
   failed_when: false
 
-- name: Remove VM if it is defined
-  community.libvirt.virt:
-    command: undefine
-    name: "{{ win_vm_name }}"
+- name: Remove VM and its snapshots if defined
+  ansible.builtin.command:
+    cmd: "virsh undefine {{ win_vm_name }} --snapshots-metadata"
   when: win_vm_name in virt_status.list_vms
 
 - name: Delete previous disk image
