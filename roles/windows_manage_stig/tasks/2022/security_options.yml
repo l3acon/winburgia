@@ -433,20 +433,61 @@
 # AUDIT-THEN-REMEDIATE PHASE - Security Policies
 # =============================================================================
 
+- name: STIG Security Options | Reset WinRM before security policy changes
+  ansible.builtin.meta: reset_connection
+  tags:
+    - security_options
+    - security_policy
+
+- name: STIG Security Options | Verify WinRM connectivity
+  ansible.builtin.wait_for_connection:
+    timeout: 120
+    delay: 5
+  tags:
+    - security_options
+    - security_policy
+
 - name: STIG Security Options | SCORED | Configure security policy options (modernized)
-  community.windows.win_security_policy:
-    section: "{{ item.section }}"
-    key: "{{ item.key }}"
-    value: "{{ item.value }}"
-  register: windows_manage_stig_security_policy_results
-  loop: >-
-    {{
-      windows_manage_stig_security_options | dict2items | map(attribute='value') |
-      flatten | selectattr('method', 'defined') | selectattr('method', 'equalto', 'security_policy')
-    }}
-  when:
-    - item.stig_id not in windows_manage_stig_skip_rules
-    - windows_manage_stig_only_rules | length == 0 or item.stig_id in windows_manage_stig_only_rules
+  block:
+    - name: STIG Security Options | SCORED | Apply security policy settings
+      community.windows.win_security_policy:
+        section: "{{ item.section }}"
+        key: "{{ item.key }}"
+        value: "{{ item.value }}"
+      register: windows_manage_stig_security_policy_results
+      loop: >-
+        {{
+          windows_manage_stig_security_options | dict2items | map(attribute='value') |
+          flatten | selectattr('method', 'defined') | selectattr('method', 'equalto', 'security_policy')
+        }}
+      when:
+        - item.stig_id not in windows_manage_stig_skip_rules
+        - windows_manage_stig_only_rules | length == 0 or item.stig_id in windows_manage_stig_only_rules
+
+  rescue:
+    - name: STIG Security Options | Reset connection after failure
+      ansible.builtin.meta: reset_connection
+
+    - name: STIG Security Options | Wait for WinRM recovery
+      ansible.builtin.wait_for_connection:
+        timeout: 300
+        delay: 30
+
+    - name: STIG Security Options | SCORED | Retry security policy settings
+      community.windows.win_security_policy:
+        section: "{{ item.section }}"
+        key: "{{ item.key }}"
+        value: "{{ item.value }}"
+      register: windows_manage_stig_security_policy_results
+      loop: >-
+        {{
+          windows_manage_stig_security_options | dict2items | map(attribute='value') |
+          flatten | selectattr('method', 'defined') | selectattr('method', 'equalto', 'security_policy')
+        }}
+      when:
+        - item.stig_id not in windows_manage_stig_skip_rules
+        - windows_manage_stig_only_rules | length == 0 or item.stig_id in windows_manage_stig_only_rules
+
   tags:
     - security_options
     - security_policy

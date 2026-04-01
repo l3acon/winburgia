@@ -77,6 +77,10 @@
     - user_rights
     - stig
 
+- name: STIG | Refresh WinRM connection before security options
+  ansible.builtin.meta: reset_connection
+  tags: always
+
 - name: STIG | Apply security options controls (version-specific)
   ansible.builtin.include_tasks: "{{ windows_manage_stig_detected_version }}/security_options.yml"
   when:
@@ -86,6 +90,10 @@
     - security_options
     - stig
 
+- name: STIG | Refresh WinRM connection before registry settings
+  ansible.builtin.meta: reset_connection
+  tags: always
+
 - name: STIG | Apply registry settings controls (version-specific)
   ansible.builtin.include_tasks: "{{ windows_manage_stig_detected_version }}/registry_settings.yml"
   when:
@@ -94,6 +102,10 @@
   tags:
     - registry_settings
     - stig
+
+- name: STIG | Refresh WinRM connection before system services
+  ansible.builtin.meta: reset_connection
+  tags: always
 
 - name: STIG | Apply system services controls (version-specific)
   ansible.builtin.include_tasks: "{{ windows_manage_stig_detected_version }}/system_services.yml"
