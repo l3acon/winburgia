@@ -17,7 +17,7 @@ win_vm_fqdn: "{{ win_computername }}.{{ win_vm_domain }}"
 win_timezone: UTC
 win_locale: en-US
 
-storage_path: /var/lib/libvirt/images
+storage_path: /virt/images
 win_disk_path: "{{ storage_path }}/{{ win_vm_name }}.qcow2"
 win_unattend_dir: "/tmp/{{ win_vm_name }}-unattend"
 win_unattend_iso_path: "{{ storage_path }}/{{ win_vm_name }}-unattend.iso"

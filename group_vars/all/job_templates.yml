@@ -82,6 +82,62 @@ controller_templates:
       ansible_winrm_server_cert_validation: ignore
       ansible_port: 5985
 
+  - name: "Winburgia | Apply STIG"
+    description: Apply DISA STIG hardening controls to a Windows Server
+    organization: Default
+    project: Winburgia
+    playbook: apply_stig.yml
+    inventory: Cheeseburgia Windows
+    execution_environment: Winburgia EE
+    credentials:
+      - Windows Machine Credential
+    ask_variables_on_launch: true
+    ask_limit_on_launch: true
+    survey_enabled: true
+    survey_spec:
+      name: STIG Configuration
+      description: Options for STIG hardening
+      spec:
+        - question_name: Report Format
+          variable: windows_manage_stig_report_format
+          type: multiplechoice
+          required: false
+          default: html
+          choices: |-
+            json
+            html
+            yaml
+          question_description: Format for the compliance report
+        - question_name: Organization Name
+          variable: windows_manage_stig_organization
+          type: text
+          required: false
+          default: Cheeseburgia
+          question_description: Organization name for audit trail
+        - question_name: Compliance Threshold (%)
+          variable: windows_manage_stig_compliance_threshold
+          type: integer
+          required: false
+          default: 95
+          min: 0
+          max: 100
+          question_description: Minimum compliance percentage required
+        - question_name: Fail on Non-Compliance
+          variable: windows_manage_stig_fail_on_non_compliance
+          type: multiplechoice
+          required: false
+          default: "false"
+          choices: |-
+            true
+            false
+          question_description: Fail the job if compliance threshold is not met
+    extra_vars:
+      ansible_connection: winrm
+      ansible_winrm_transport: ntlm
+      ansible_winrm_server_cert_validation: ignore
+      ansible_port: 5985
+      windows_manage_stig_generate_report: true
+
   - name: "Winburgia | Deploy Windows VM"
     description: Deploy a new Windows VM on the KVM hypervisor
     organization: Default
