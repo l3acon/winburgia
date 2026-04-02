@@ -1,0 +1,13 @@
+---
+- name: Deploy STIG compliance report to IIS
+  hosts: all
+  gather_facts: true
+
+  roles:
+    - role: deploy_patch_report
+      vars:
+        report_type: stig
+        report_template: stig_report.html.j2
+        report_site_name: STIGReport
+        report_site_path: C:\inetpub\STIGReport
+        report_site_port: 8081

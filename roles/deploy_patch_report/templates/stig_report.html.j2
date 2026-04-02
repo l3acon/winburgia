@@ -1,0 +1,196 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Winburgia STIG Compliance Report</title>
+  <style>
+    :root {
+      --bg: #0f172a;
+      --surface: #1e293b;
+      --border: #334155;
+      --text: #e2e8f0;
+      --muted: #94a3b8;
+      --accent: #38bdf8;
+      --success: #4ade80;
+      --warn: #fbbf24;
+      --danger: #f87171;
+    }
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body {
+      font-family: 'Segoe UI', system-ui, -apple-system, sans-serif;
+      background: var(--bg);
+      color: var(--text);
+      line-height: 1.6;
+      padding: 2rem;
+    }
+    .container { max-width: 1060px; margin: 0 auto; }
+    header {
+      text-align: center;
+      margin-bottom: 2rem;
+      padding-bottom: 1.5rem;
+      border-bottom: 1px solid var(--border);
+    }
+    header h1 { font-size: 1.75rem; font-weight: 600; color: var(--accent); }
+    header p { color: var(--muted); margin-top: 0.25rem; }
+    .cards {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+      gap: 1rem;
+      margin-bottom: 2rem;
+    }
+    .card {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      padding: 1.25rem;
+      text-align: center;
+    }
+    .card .label { font-size: 0.75rem; text-transform: uppercase; letter-spacing: 0.05em; color: var(--muted); }
+    .card .value { font-size: 1.75rem; font-weight: 700; margin-top: 0.25rem; }
+    .card .value.green { color: var(--success); }
+    .card .value.yellow { color: var(--warn); }
+    .card .value.red { color: var(--danger); }
+    .card .value.blue { color: var(--accent); }
+    .score-bar {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      padding: 1.5rem;
+      margin-bottom: 2rem;
+    }
+    .score-bar h2 { font-size: 1.1rem; font-weight: 600; margin-bottom: 0.75rem; color: var(--accent); }
+    .bar-track {
+      background: #334155;
+      border-radius: 6px;
+      height: 28px;
+      overflow: hidden;
+      position: relative;
+    }
+    .bar-fill {
+      height: 100%;
+      border-radius: 6px;
+      transition: width 0.4s;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 0.8rem;
+      font-weight: 700;
+      color: #fff;
+    }
+    section {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      padding: 1.5rem;
+      margin-bottom: 1.5rem;
+    }
+    section h2 { font-size: 1.1rem; font-weight: 600; margin-bottom: 1rem; color: var(--accent); }
+    table { width: 100%; border-collapse: collapse; }
+    th, td {
+      text-align: left;
+      padding: 0.6rem 0.75rem;
+      border-bottom: 1px solid var(--border);
+      font-size: 0.85rem;
+    }
+    th { color: var(--muted); font-weight: 500; text-transform: uppercase; font-size: 0.7rem; letter-spacing: 0.05em; }
+    tr:last-child td { border-bottom: none; }
+    .badge {
+      display: inline-block;
+      padding: 0.15rem 0.5rem;
+      border-radius: 4px;
+      font-size: 0.75rem;
+      font-weight: 600;
+    }
+    .badge-pass { background: rgba(74,222,128,0.15); color: var(--success); }
+    .badge-fail { background: rgba(248,113,113,0.15); color: var(--danger); }
+    .badge-cat1 { background: rgba(248,113,113,0.15); color: var(--danger); }
+    .badge-cat2 { background: rgba(251,191,36,0.15); color: var(--warn); }
+    .badge-cat3 { background: rgba(56,189,248,0.15); color: var(--accent); }
+    footer { text-align: center; color: var(--muted); font-size: 0.8rem; margin-top: 2rem; }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <header>
+      <h1>DISA STIG Compliance Report</h1>
+      <p>{{ stig_report.fqdn | default(stig_report.host) }} &mdash; {{ stig_report.scanned_at }}</p>
+      <p style="margin-top:0.5rem; font-size:0.85rem;">{{ stig_report.benchmark }} {{ stig_report.benchmark_version }}</p>
+    </header>
+
+    <div class="cards">
+      <div class="card">
+        <div class="label">Host</div>
+        <div class="value blue">{{ stig_report.host }}</div>
+      </div>
+      <div class="card">
+        <div class="label">Total Controls</div>
+        <div class="value blue">{{ stig_report.total_controls }}</div>
+      </div>
+      <div class="card">
+        <div class="label">Passed</div>
+        <div class="value green">{{ stig_report.passed_controls }}</div>
+      </div>
+      <div class="card">
+        <div class="label">Failed</div>
+        <div class="value {% if stig_report.failed_controls_count | int > 0 %}red{% else %}green{% endif %}">{{ stig_report.failed_controls_count }}</div>
+      </div>
+    </div>
+
+{% set score = stig_report.compliance_score | float %}
+    <div class="score-bar">
+      <h2>Compliance Score</h2>
+      <div class="bar-track">
+        <div class="bar-fill" style="width: {{ score }}%; background: {% if score >= 90 %}var(--success){% elif score >= 70 %}var(--warn){% else %}var(--danger){% endif %};">
+          {{ score }}%
+        </div>
+      </div>
+    </div>
+
+{% if stig_report.failed_controls | default([]) | length > 0 %}
+    <section>
+      <h2>Failed Controls ({{ stig_report.failed_controls | length }})</h2>
+      <table>
+        <thead>
+          <tr>
+            <th>STIG ID</th>
+            <th>Title</th>
+            <th>Severity</th>
+            <th>Expected</th>
+            <th>Current</th>
+          </tr>
+        </thead>
+        <tbody>
+{% for ctrl in stig_report.failed_controls %}
+          <tr>
+            <td>{{ ctrl.stig_id }}</td>
+            <td>{{ ctrl.title | default('N/A') }}</td>
+            <td>
+{% if ctrl.severity | default('') == 'CAT I' %}
+              <span class="badge badge-cat1">CAT I</span>
+{% elif ctrl.severity | default('') == 'CAT II' %}
+              <span class="badge badge-cat2">CAT II</span>
+{% else %}
+              <span class="badge badge-cat3">{{ ctrl.severity | default('N/A') }}</span>
+{% endif %}
+            </td>
+            <td>{{ ctrl.expected_value | default('N/A') }}</td>
+            <td>{{ ctrl.current_value | default('N/A') }}</td>
+          </tr>
+{% endfor %}
+        </tbody>
+      </table>
+    </section>
+{% else %}
+    <section>
+      <h2>All Controls Passed</h2>
+      <p style="color: var(--success);">No failed controls detected. Full compliance achieved.</p>
+    </section>
+{% endif %}
+
+    <footer>
+      Generated by Winburgia Automation &bull; Ansible Automation Platform
+    </footer>
+  </div>
+</body>
+</html>

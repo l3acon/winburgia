@@ -41,3 +41,28 @@ controller_workflows:
         success_nodes: []
         failure_nodes: []
         always_nodes: []
+
+  - name: "Winburgia | STIG Compliance Workflow"
+    description: Apply STIG hardening, provision report server, serve compliance report
+    organization: Default
+    ask_variables_on_launch: true
+    simplified_workflow_nodes:
+      - identifier: apply_stig
+        unified_job_template: "Winburgia | Apply STIG"
+        success_nodes:
+          - provision_report_server
+        failure_nodes: []
+        always_nodes: []
+
+      - identifier: provision_report_server
+        unified_job_template: "Winburgia | Provision Report Server"
+        success_nodes:
+          - deploy_stig_report
+        failure_nodes: []
+        always_nodes: []
+
+      - identifier: deploy_stig_report
+        unified_job_template: "Winburgia | Deploy STIG Report"
+        success_nodes: []
+        failure_nodes: []
+        always_nodes: []

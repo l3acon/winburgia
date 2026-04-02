@@ -15,9 +15,9 @@
     path: "{{ report_site_path }}"
     state: directory
 
-- name: Template patch report HTML
+- name: Template {{ report_type }} report HTML
   ansible.windows.win_template:
-    src: report.html.j2
+    src: "{{ report_template }}"
     dest: "{{ report_site_path }}\\index.html"
 
 - name: Ensure IIS site exists
@@ -29,7 +29,7 @@
 
 - name: Open firewall for report site
   community.windows.win_firewall_rule:
-    name: "Patch Report (port {{ report_site_port }})"
+    name: "{{ report_site_name }} (port {{ report_site_port }})"
     localport: "{{ report_site_port }}"
     action: allow
     direction: in
@@ -39,4 +39,4 @@
 
 - name: Display report URL
   ansible.builtin.debug:
-    msg: "Patch report available at http://{{ ansible_host }}:{{ report_site_port }}/"
+    msg: "{{ report_type | capitalize }} report available at http://{{ ansible_host }}:{{ report_site_port }}/"

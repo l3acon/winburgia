@@ -18,3 +18,24 @@
 
   roles:
     - role: windows_manage_stig
+
+  post_tasks:
+    - name: Build STIG report data
+      ansible.builtin.set_fact:
+        stig_report:
+          host: "{{ inventory_hostname }}"
+          fqdn: "{{ ansible_fqdn | default(inventory_hostname) }}"
+          scanned_at: "{{ ansible_date_time.iso8601 }}"
+          benchmark: "{{ windows_manage_stig_benchmark_name }}"
+          benchmark_version: "{{ windows_manage_stig_benchmark_version }}"
+          compliance_score: "{{ windows_manage_stig_compliance_score }}"
+          total_controls: "{{ windows_manage_stig_total_controls }}"
+          passed_controls: "{{ windows_manage_stig_passed_controls }}"
+          failed_controls_count: "{{ windows_manage_stig_failed_controls_count }}"
+          failed_controls: "{{ windows_manage_stig_failed_controls | default([]) }}"
+
+    - name: Export STIG results as workflow artifact
+      ansible.builtin.set_stats:
+        data:
+          stig_report: "{{ stig_report }}"
+        per_host: false

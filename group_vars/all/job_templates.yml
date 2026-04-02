@@ -124,6 +124,19 @@ controller_templates:
     extra_vars:
       windows_manage_stig_generate_report: true
 
+  - name: "Winburgia | Deploy STIG Report"
+    description: Deploy STIG compliance report to IIS on the report server
+    organization: Default
+    project: Winburgia
+    playbook: deploy_stig_report.yml
+    inventory: Cheeseburgia Windows
+    limit: WINREPORT
+    execution_environment: Winburgia EE
+    credentials:
+      - Windows Machine Credential
+    ask_variables_on_launch: true
+    ask_limit_on_launch: true
+
   - name: "Winburgia | Deploy Windows VM"
     description: Deploy a new Windows VM on the KVM hypervisor
     organization: Default
