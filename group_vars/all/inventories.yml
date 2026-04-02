@@ -24,6 +24,26 @@ controller_hosts:
     inventory: Cheeseburgia Hypervisor
     enabled: true
 
+  - name: WINMEMBER2
+    inventory: Cheeseburgia Windows
+    enabled: true
+    variables:
+      ansible_host: WINMEMBER2.lab.cheeseburgia.com
+      ansible_connection: winrm
+      ansible_winrm_transport: ntlm
+      ansible_winrm_server_cert_validation: ignore
+      ansible_port: 5985
+
+  - name: WINMEMBER3
+    inventory: Cheeseburgia Windows
+    enabled: true
+    variables:
+      ansible_host: WINMEMBER3.lab.cheeseburgia.com
+      ansible_connection: winrm
+      ansible_winrm_transport: ntlm
+      ansible_winrm_server_cert_validation: ignore
+      ansible_port: 5985
+
   - name: WINREPORT
     inventory: Cheeseburgia Windows
     enabled: true

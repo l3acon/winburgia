@@ -13,6 +13,8 @@ controller_templates:
     extra_vars:
       vm_targets:
         - winmember
+        - winmember2
+        - winmember3
       operation: snapshot
       snapshot_name: ""
 
@@ -22,7 +24,7 @@ controller_templates:
     project: Winburgia
     playbook: patch_windows.yml
     inventory: Cheeseburgia Windows
-    limit: WINMEMBER
+    limit: "WINMEMBER:WINMEMBER2:WINMEMBER3"
     credentials:
       - Windows Machine Credential
     ask_variables_on_launch: true
@@ -41,6 +43,8 @@ controller_templates:
     extra_vars:
       vm_targets:
         - winmember
+        - winmember2
+        - winmember3
       snapshot_name: ""
 
   - name: "Winburgia | Provision Report Server"

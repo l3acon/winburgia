@@ -33,7 +33,7 @@
     }
     header h1 { font-size: 1.75rem; font-weight: 600; color: var(--accent); }
     header p { color: var(--muted); margin-top: 0.25rem; }
-    .cards {
+    .summary-cards {
       display: grid;
       grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
       gap: 1rem;
@@ -52,25 +52,39 @@
     .card .value.yellow { color: var(--warn); }
     .card .value.red { color: var(--danger); }
     .card .value.blue { color: var(--accent); }
-    .score-bar {
+    .host-section {
       background: var(--surface);
       border: 1px solid var(--border);
       border-radius: 8px;
       padding: 1.5rem;
-      margin-bottom: 2rem;
+      margin-bottom: 1.5rem;
     }
-    .score-bar h2 { font-size: 1.1rem; font-weight: 600; margin-bottom: 0.75rem; color: var(--accent); }
+    .host-section h2 {
+      font-size: 1.1rem;
+      font-weight: 600;
+      margin-bottom: 1rem;
+      color: var(--accent);
+    }
+    .host-meta {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(120px, 1fr));
+      gap: 0.75rem;
+      margin-bottom: 1rem;
+    }
+    .host-meta .stat { text-align: center; }
+    .host-meta .stat .num { font-size: 1.4rem; font-weight: 700; }
+    .host-meta .stat .lbl { font-size: 0.7rem; text-transform: uppercase; color: var(--muted); }
     .bar-track {
       background: #334155;
       border-radius: 6px;
-      height: 28px;
+      height: 24px;
       overflow: hidden;
       position: relative;
+      margin-bottom: 1rem;
     }
     .bar-fill {
       height: 100%;
       border-radius: 6px;
-      transition: width 0.4s;
       display: flex;
       align-items: center;
       justify-content: center;
@@ -78,14 +92,6 @@
       font-weight: 700;
       color: #fff;
     }
-    section {
-      background: var(--surface);
-      border: 1px solid var(--border);
-      border-radius: 8px;
-      padding: 1.5rem;
-      margin-bottom: 1.5rem;
-    }
-    section h2 { font-size: 1.1rem; font-weight: 600; margin-bottom: 1rem; color: var(--accent); }
     table { width: 100%; border-collapse: collapse; }
     th, td {
       text-align: left;
@@ -102,11 +108,17 @@
       font-size: 0.75rem;
       font-weight: 600;
     }
-    .badge-pass { background: rgba(74,222,128,0.15); color: var(--success); }
-    .badge-fail { background: rgba(248,113,113,0.15); color: var(--danger); }
     .badge-cat1 { background: rgba(248,113,113,0.15); color: var(--danger); }
     .badge-cat2 { background: rgba(251,191,36,0.15); color: var(--warn); }
     .badge-cat3 { background: rgba(56,189,248,0.15); color: var(--accent); }
+    details { margin-top: 0.75rem; }
+    details summary {
+      cursor: pointer;
+      font-size: 0.85rem;
+      color: var(--muted);
+      padding: 0.5rem 0;
+    }
+    details summary:hover { color: var(--text); }
     footer { text-align: center; color: var(--muted); font-size: 0.8rem; margin-top: 2rem; }
   </style>
 </head>
@@ -114,79 +126,92 @@
   <div class="container">
     <header>
       <h1>DISA STIG Compliance Report</h1>
-      <p>{{ stig_report.fqdn | default(stig_report.host) }} &mdash; {{ stig_report.scanned_at }}</p>
-      <p style="margin-top:0.5rem; font-size:0.85rem;">{{ stig_report.benchmark }} {{ stig_report.benchmark_version }}</p>
+{% if stig_reports | length > 0 %}
+      <p>{{ stig_reports | length }} host{{ 's' if stig_reports | length > 1 else '' }} scanned &mdash; {{ stig_reports[0].benchmark }} {{ stig_reports[0].benchmark_version }}</p>
+{% endif %}
     </header>
 
-    <div class="cards">
+{% set avg_score = (stig_reports | map(attribute='compliance_score') | map('float') | sum / stig_reports | length) | round(1) if stig_reports | length > 0 else 0 %}
+    <div class="summary-cards">
       <div class="card">
-        <div class="label">Host</div>
-        <div class="value blue">{{ stig_report.host }}</div>
+        <div class="label">Hosts Scanned</div>
+        <div class="value blue">{{ stig_reports | length }}</div>
       </div>
       <div class="card">
-        <div class="label">Total Controls</div>
-        <div class="value blue">{{ stig_report.total_controls }}</div>
+        <div class="label">Average Compliance</div>
+        <div class="value {% if avg_score >= 90 %}green{% elif avg_score >= 70 %}yellow{% else %}red{% endif %}">{{ avg_score }}%</div>
       </div>
       <div class="card">
-        <div class="label">Passed</div>
-        <div class="value green">{{ stig_report.passed_controls }}</div>
+        <div class="label">Total Passed</div>
+        <div class="value green">{{ stig_reports | map(attribute='passed_controls') | map('int') | sum }}</div>
       </div>
       <div class="card">
-        <div class="label">Failed</div>
-        <div class="value {% if stig_report.failed_controls_count | int > 0 %}red{% else %}green{% endif %}">{{ stig_report.failed_controls_count }}</div>
+        <div class="label">Total Failed</div>
+        <div class="value {% if stig_reports | map(attribute='failed_controls_count') | map('int') | sum > 0 %}red{% else %}green{% endif %}">
+          {{ stig_reports | map(attribute='failed_controls_count') | map('int') | sum }}
+        </div>
       </div>
     </div>
 
-{% set score = stig_report.compliance_score | float %}
-    <div class="score-bar">
-      <h2>Compliance Score</h2>
+{% for report in stig_reports %}
+{% set score = report.compliance_score | float %}
+    <div class="host-section">
+      <h2>{{ report.fqdn | default(report.host) }}</h2>
+      <div class="host-meta">
+        <div class="stat">
+          <div class="num" style="color: var(--accent);">{{ report.total_controls }}</div>
+          <div class="lbl">Controls</div>
+        </div>
+        <div class="stat">
+          <div class="num" style="color: var(--success);">{{ report.passed_controls }}</div>
+          <div class="lbl">Passed</div>
+        </div>
+        <div class="stat">
+          <div class="num" style="color: {% if report.failed_controls_count | int > 0 %}var(--danger){% else %}var(--success){% endif %};">{{ report.failed_controls_count }}</div>
+          <div class="lbl">Failed</div>
+        </div>
+        <div class="stat">
+          <div class="num" style="color: {% if score >= 90 %}var(--success){% elif score >= 70 %}var(--warn){% else %}var(--danger){% endif %};">{{ score }}%</div>
+          <div class="lbl">Score</div>
+        </div>
+      </div>
       <div class="bar-track">
         <div class="bar-fill" style="width: {{ score }}%; background: {% if score >= 90 %}var(--success){% elif score >= 70 %}var(--warn){% else %}var(--danger){% endif %};">
           {{ score }}%
         </div>
       </div>
-    </div>
-
-{% if stig_report.failed_controls | default([]) | length > 0 %}
-    <section>
-      <h2>Failed Controls ({{ stig_report.failed_controls | length }})</h2>
-      <table>
-        <thead>
-          <tr>
-            <th>STIG ID</th>
-            <th>Title</th>
-            <th>Severity</th>
-            <th>Expected</th>
-            <th>Current</th>
-          </tr>
-        </thead>
-        <tbody>
-{% for ctrl in stig_report.failed_controls %}
-          <tr>
-            <td>{{ ctrl.stig_id }}</td>
-            <td>{{ ctrl.title | default('N/A') }}</td>
-            <td>
+      <p style="font-size:0.8rem; color:var(--muted);">Scanned at {{ report.scanned_at }}</p>
+{% if report.failed_controls | default([]) | length > 0 %}
+      <details>
+        <summary>Show {{ report.failed_controls | length }} failed control{{ 's' if report.failed_controls | length > 1 else '' }}</summary>
+        <table>
+          <thead>
+            <tr><th>STIG ID</th><th>Title</th><th>Severity</th><th>Expected</th><th>Current</th></tr>
+          </thead>
+          <tbody>
+{% for ctrl in report.failed_controls %}
+            <tr>
+              <td>{{ ctrl.stig_id }}</td>
+              <td>{{ ctrl.title | default('N/A') }}</td>
+              <td>
 {% if ctrl.severity | default('') == 'CAT I' %}
-              <span class="badge badge-cat1">CAT I</span>
+                <span class="badge badge-cat1">CAT I</span>
 {% elif ctrl.severity | default('') == 'CAT II' %}
-              <span class="badge badge-cat2">CAT II</span>
+                <span class="badge badge-cat2">CAT II</span>
 {% else %}
-              <span class="badge badge-cat3">{{ ctrl.severity | default('N/A') }}</span>
+                <span class="badge badge-cat3">{{ ctrl.severity | default('N/A') }}</span>
 {% endif %}
-            </td>
-            <td>{{ ctrl.expected_value | default('N/A') }}</td>
-            <td>{{ ctrl.current_value | default('N/A') }}</td>
-          </tr>
+              </td>
+              <td>{{ ctrl.expected_value | default('N/A') }}</td>
+              <td>{{ ctrl.current_value | default('N/A') }}</td>
+            </tr>
 {% endfor %}
-        </tbody>
-      </table>
-    </section>
-{% else %}
-    <section>
-      <h2>All Controls Passed</h2>
-      <p style="color: var(--success);">No failed controls detected. Full compliance achieved.</p>
-    </section>
+          </tbody>
+        </table>
+      </details>
 {% endif %}
+    </div>
+{% endfor %}
 
     <footer>
       Generated by Winburgia Automation &bull; Ansible Automation Platform

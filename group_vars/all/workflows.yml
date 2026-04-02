@@ -7,6 +7,8 @@ controller_workflows:
     extra_vars:
       vm_targets:
         - winmember
+        - winmember2
+        - winmember3
     simplified_workflow_nodes:
       - identifier: snapshot
         unified_job_template: "Winburgia | Snapshot VM"
@@ -49,6 +51,7 @@ controller_workflows:
     simplified_workflow_nodes:
       - identifier: apply_stig
         unified_job_template: "Winburgia | Apply STIG"
+        limit: "WINMEMBER:WINMEMBER2:WINMEMBER3"
         success_nodes:
           - provision_report_server
         failure_nodes: []

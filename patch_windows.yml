@@ -13,9 +13,9 @@
           - SecurityUpdates
 
   post_tasks:
-    - name: Build patch report data
+    - name: Build per-host patch report data
       ansible.builtin.set_fact:
-        patch_report:
+        _host_patch_report:
           host: "{{ inventory_hostname }}"
           fqdn: "{{ ansible_fqdn | default(inventory_hostname) }}"
           patched_at: "{{ ansible_date_time.iso8601 }}"
@@ -25,8 +25,14 @@
           categories: "{{ windows_manage_updates_categories }}"
           updates: "{{ windows_manage_updates_output.updates | default({}) | dict2items | map(attribute='value') | list }}"
 
+    - name: Aggregate patch reports from all hosts
+      ansible.builtin.set_fact:
+        patch_reports: "{{ ansible_play_hosts_all | map('extract', hostvars, '_host_patch_report') | list }}"
+      run_once: true
+
     - name: Export patch results as workflow artifact
       ansible.builtin.set_stats:
         data:
-          patch_report: "{{ patch_report }}"
+          patch_reports: "{{ patch_reports }}"
         per_host: false
+      run_once: true

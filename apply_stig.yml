@@ -20,9 +20,9 @@
     - role: windows_manage_stig
 
   post_tasks:
-    - name: Build STIG report data
+    - name: Build per-host STIG report data
       ansible.builtin.set_fact:
-        stig_report:
+        _host_stig_report:
           host: "{{ inventory_hostname }}"
           fqdn: "{{ ansible_fqdn | default(inventory_hostname) }}"
           scanned_at: "{{ ansible_date_time.iso8601 }}"
@@ -34,8 +34,14 @@
           failed_controls_count: "{{ windows_manage_stig_failed_controls_count }}"
           failed_controls: "{{ windows_manage_stig_failed_controls | default([]) }}"
 
+    - name: Aggregate STIG reports from all hosts
+      ansible.builtin.set_fact:
+        stig_reports: "{{ ansible_play_hosts_all | map('extract', hostvars, '_host_stig_report') | list }}"
+      run_once: true
+
     - name: Export STIG results as workflow artifact
       ansible.builtin.set_stats:
         data:
-          stig_report: "{{ stig_report }}"
+          stig_reports: "{{ stig_reports }}"
         per_host: false
+      run_once: true

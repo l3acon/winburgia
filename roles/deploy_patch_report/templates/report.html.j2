@@ -24,20 +24,16 @@
       line-height: 1.6;
       padding: 2rem;
     }
-    .container { max-width: 960px; margin: 0 auto; }
+    .container { max-width: 1060px; margin: 0 auto; }
     header {
       text-align: center;
       margin-bottom: 2rem;
       padding-bottom: 1.5rem;
       border-bottom: 1px solid var(--border);
     }
-    header h1 {
-      font-size: 1.75rem;
-      font-weight: 600;
-      color: var(--accent);
-    }
+    header h1 { font-size: 1.75rem; font-weight: 600; color: var(--accent); }
     header p { color: var(--muted); margin-top: 0.25rem; }
-    .cards {
+    .summary-cards {
       display: grid;
       grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
       gap: 1rem;
@@ -55,25 +51,39 @@
     .card .value.green { color: var(--success); }
     .card .value.yellow { color: var(--warn); }
     .card .value.blue { color: var(--accent); }
-    section {
+    .host-section {
       background: var(--surface);
       border: 1px solid var(--border);
       border-radius: 8px;
       padding: 1.5rem;
       margin-bottom: 1.5rem;
     }
-    section h2 {
+    .host-section h2 {
       font-size: 1.1rem;
       font-weight: 600;
       margin-bottom: 1rem;
       color: var(--accent);
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
     }
+    .host-meta {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
+      gap: 0.75rem;
+      margin-bottom: 1rem;
+      padding-bottom: 1rem;
+      border-bottom: 1px solid var(--border);
+    }
+    .host-meta .stat { text-align: center; }
+    .host-meta .stat .num { font-size: 1.4rem; font-weight: 700; }
+    .host-meta .stat .lbl { font-size: 0.7rem; text-transform: uppercase; color: var(--muted); }
     table { width: 100%; border-collapse: collapse; }
     th, td {
       text-align: left;
       padding: 0.6rem 0.75rem;
       border-bottom: 1px solid var(--border);
-      font-size: 0.875rem;
+      font-size: 0.85rem;
     }
     th { color: var(--muted); font-weight: 500; text-transform: uppercase; font-size: 0.7rem; letter-spacing: 0.05em; }
     tr:last-child td { border-bottom: none; }
@@ -93,49 +103,63 @@
   <div class="container">
     <header>
       <h1>Winburgia Patch Report</h1>
-      <p>{{ patch_report.fqdn | default(patch_report.host) }} &mdash; {{ patch_report.patched_at }}</p>
+      <p>{{ patch_reports | length }} host{{ 's' if patch_reports | length > 1 else '' }} patched</p>
     </header>
 
-    <div class="cards">
+    <div class="summary-cards">
       <div class="card">
-        <div class="label">Host</div>
-        <div class="value blue">{{ patch_report.host }}</div>
+        <div class="label">Hosts Patched</div>
+        <div class="value blue">{{ patch_reports | length }}</div>
       </div>
       <div class="card">
-        <div class="label">Updates Found</div>
-        <div class="value yellow">{{ patch_report.found_count }}</div>
+        <div class="label">Total Updates Found</div>
+        <div class="value yellow">{{ patch_reports | map(attribute='found_count') | map('int') | sum }}</div>
       </div>
       <div class="card">
-        <div class="label">Updates Installed</div>
-        <div class="value green">{{ patch_report.installed_count }}</div>
+        <div class="label">Total Installed</div>
+        <div class="value green">{{ patch_reports | map(attribute='installed_count') | map('int') | sum }}</div>
       </div>
       <div class="card">
-        <div class="label">Reboot Required</div>
-        <div class="value {% if patch_report.reboot_required | bool %}yellow{% else %}green{% endif %}">
-          {{ 'Yes' if patch_report.reboot_required | bool else 'No' }}
+        <div class="label">Reboots Required</div>
+        <div class="value {% if patch_reports | selectattr('reboot_required', 'equalto', true) | list | length > 0 %}yellow{% else %}green{% endif %}">
+          {{ patch_reports | selectattr('reboot_required', 'equalto', true) | list | length }}
         </div>
       </div>
     </div>
 
-    <section>
-      <h2>Categories</h2>
-      <p>{{ patch_report.categories | join(', ') }}</p>
-    </section>
-
-{% if patch_report.updates | default([]) | length > 0 %}
-    <section>
-      <h2>Installed Updates</h2>
+{% for report in patch_reports %}
+    <div class="host-section">
+      <h2>{{ report.fqdn | default(report.host) }}</h2>
+      <div class="host-meta">
+        <div class="stat">
+          <div class="num" style="color: var(--accent);">{{ report.host }}</div>
+          <div class="lbl">Host</div>
+        </div>
+        <div class="stat">
+          <div class="num" style="color: var(--warn);">{{ report.found_count }}</div>
+          <div class="lbl">Found</div>
+        </div>
+        <div class="stat">
+          <div class="num" style="color: var(--success);">{{ report.installed_count }}</div>
+          <div class="lbl">Installed</div>
+        </div>
+        <div class="stat">
+          <div class="num" style="color: {% if report.reboot_required | bool %}var(--warn){% else %}var(--success){% endif %};">
+            {{ 'Yes' if report.reboot_required | bool else 'No' }}
+          </div>
+          <div class="lbl">Reboot</div>
+        </div>
+      </div>
+      <p style="font-size:0.8rem; color:var(--muted); margin-bottom:0.75rem;">
+        Patched at {{ report.patched_at }} &bull; Categories: {{ report.categories | join(', ') }}
+      </p>
+{% if report.updates | default([]) | length > 0 %}
       <table>
         <thead>
-          <tr>
-            <th>KB</th>
-            <th>Title</th>
-            <th>Categories</th>
-            <th>Status</th>
-          </tr>
+          <tr><th>KB</th><th>Title</th><th>Categories</th><th>Status</th></tr>
         </thead>
         <tbody>
-{% for update in patch_report.updates | default([]) %}
+{% for update in report.updates %}
           <tr>
             <td>{{ update.kb | default('N/A') }}</td>
             <td>{{ update.title | default('Unknown') }}</td>
@@ -151,13 +175,11 @@
 {% endfor %}
         </tbody>
       </table>
-    </section>
 {% else %}
-    <section>
-      <h2>Updates</h2>
-      <p>No individual update details available.</p>
-    </section>
+      <p style="color:var(--muted);">No individual update details available.</p>
 {% endif %}
+    </div>
+{% endfor %}
 
     <footer>
       Generated by Winburgia Automation &bull; Ansible Automation Platform
