@@ -9,33 +9,48 @@
       delegate_to: localhost
       run_once: true
 
-    - name: Show krb5.conf content
-      ansible.builtin.slurp:
-        src: "{{ lookup('ansible.builtin.env', 'KRB5_CONFIG') }}"
+    - name: Show raw krb5.conf via cat
+      ansible.builtin.command:
+        cmd: "cat {{ lookup('ansible.builtin.env', 'KRB5_CONFIG') }}"
       delegate_to: localhost
       run_once: true
-      register: _krb5_conf
-      when: lookup('ansible.builtin.env', 'KRB5_CONFIG') | length > 0
+      register: _krb5_cat
+      changed_when: false
 
     - name: Display krb5.conf
       ansible.builtin.debug:
-        msg: "{{ _krb5_conf.content | b64decode }}"
+        msg: "{{ _krb5_cat.stdout }}"
       delegate_to: localhost
       run_once: true
-      when: _krb5_conf is not skipped
 
-    - name: Test kinit
+    - name: Resolve KDC hostname
       ansible.builtin.command:
-        cmd: kinit --version
+        cmd: getent hosts winad.lab.cheeseburgia.com
       delegate_to: localhost
       run_once: true
-      register: _kinit
+      register: _dns
       ignore_errors: true
       changed_when: false
 
+    - name: Show DNS result
+      ansible.builtin.debug:
+        msg: "{{ _dns.stdout | default(_dns.stderr) }}"
+      delegate_to: localhost
+      run_once: true
+
+    - name: Try kinit with explicit KRB5_CONFIG
+      ansible.builtin.shell:
+        cmd: "echo '{{ ansible_password }}' | KRB5_CONFIG={{ lookup('ansible.builtin.env', 'KRB5_CONFIG') }} kinit {{ ansible_user }} 2>&1"
+      delegate_to: localhost
+      run_once: true
+      register: _kinit_test
+      ignore_errors: true
+      changed_when: false
+      no_log: false
+
     - name: Show kinit result
       ansible.builtin.debug:
-        msg: "{{ _kinit }}"
+        msg: "rc={{ _kinit_test.rc }} stdout={{ _kinit_test.stdout }} stderr={{ _kinit_test.stderr }}"
       delegate_to: localhost
       run_once: true
 
