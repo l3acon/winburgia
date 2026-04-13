@@ -32,36 +32,35 @@
       delegate_to: localhost
       run_once: true
 
-    - name: Get AD computer SPNs
+    - name: Check domain trust and repair if needed
       ansible.windows.win_shell: |
+        Write-Output "=== Domain Trust ==="
+        Test-ComputerSecureChannel -Verbose 2>&1 | ForEach-Object { Write-Output $_ }
+        Write-Output "=== Repair Trust ==="
+        try {
+            $cred = New-Object System.Management.Automation.PSCredential("Administrator@LAB.CHEESEBURGIA.COM", (ConvertTo-SecureString "{{ ansible_password }}" -AsPlainText -Force))
+            Test-ComputerSecureChannel -Repair -Credential $cred -Verbose 2>&1 | ForEach-Object { Write-Output $_ }
+        } catch {
+            Write-Output "Repair failed: $_"
+        }
+        Write-Output "=== SPNs After Repair ==="
         $comp = [adsisearcher]"(&(objectCategory=computer)(cn=$env:COMPUTERNAME))"
         $result = $comp.FindOne()
-        $spns = $result.Properties['serviceprincipalname']
-        if ($spns) {
-            $spns | ForEach-Object { Write-Output $_ }
+        if ($result) {
+            $spns = $result.Properties['serviceprincipalname']
+            if ($spns) { $spns | ForEach-Object { Write-Output $_ } }
+            else { Write-Output "Still no SPNs" }
         } else {
-            Write-Output "NO SPNs FOUND"
+            Write-Output "Cannot query AD"
         }
       vars:
         ansible_winrm_transport: ntlm
-      register: _spns
+      register: _trust
+      ignore_errors: true
 
-    - name: Show SPNs
+    - name: Show trust repair results
       ansible.builtin.debug:
-        msg: "{{ _spns.stdout }}"
-
-    - name: Register WSMAN SPN if needed
-      ansible.windows.win_shell: |
-        setspn -S HTTP/$env:COMPUTERNAME $env:COMPUTERNAME
-        setspn -S HTTP/$env:COMPUTERNAME.lab.cheeseburgia.com $env:COMPUTERNAME
-      vars:
-        ansible_winrm_transport: ntlm
-      when: "'HTTP/' not in _spns.stdout"
-      register: _spn_reg
-
-    - name: Show SPN registration result
-      ansible.builtin.debug:
-        msg: "{{ _spn_reg.stdout | default('skipped - SPNs already registered') }}"
+        msg: "{{ _trust.stdout }}"
 
     - name: Test WinRM Kerberos
       ansible.windows.win_ping:
