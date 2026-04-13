@@ -30,6 +30,7 @@
     domain_name: lab.cheeseburgia.com
     domain_admin: "Administrator@LAB.CHEESEBURGIA.COM"
     domain_password: "{{ ansible_password }}"
+    dc_ip: 172.16.0.229
   tasks:
     - name: Check current domain status
       ansible.windows.win_shell: |
@@ -42,23 +43,43 @@
       ansible.builtin.debug:
         msg: "{{ inventory_hostname }}: {{ _status.stdout | trim }}"
 
-    - name: Check connectivity to DC
+    - name: Configure DNS to point to DC
       ansible.windows.win_shell: |
-        $dns = Resolve-DnsName winad.lab.cheeseburgia.com -ErrorAction SilentlyContinue
-        if ($dns) { Write-Output "DNS OK: $($dns.IPAddress -join ', ')" }
-        else { Write-Output "DNS FAILED" }
-        $ldap = Test-NetConnection -ComputerName winad.lab.cheeseburgia.com -Port 389 -WarningAction SilentlyContinue
-        Write-Output "LDAP port 389: $($ldap.TcpTestSucceeded)"
-        $krb = Test-NetConnection -ComputerName winad.lab.cheeseburgia.com -Port 88 -WarningAction SilentlyContinue
-        Write-Output "Kerberos port 88: $($krb.TcpTestSucceeded)"
-      register: _connectivity
-      changed_when: false
+        $adapters = Get-NetAdapter | Where-Object { $_.Status -eq 'Up' }
+        foreach ($adapter in $adapters) {
+            $current = (Get-DnsClientServerAddress -InterfaceIndex $adapter.InterfaceIndex -AddressFamily IPv4).ServerAddresses
+            Write-Output "Adapter '$($adapter.Name)' current DNS: $($current -join ', ')"
+            if ('{{ dc_ip }}' -notin $current) {
+                Set-DnsClientServerAddress -InterfaceIndex $adapter.InterfaceIndex -ServerAddresses @('{{ dc_ip }}')
+                Write-Output "  -> Set DNS to {{ dc_ip }}"
+            } else {
+                Write-Output "  -> Already configured"
+            }
+        }
+      register: _dns_config
+      when: "'PartOfDomain=False' in _status.stdout"
 
-    - name: Show connectivity
+    - name: Show DNS configuration
       ansible.builtin.debug:
-        msg: "{{ _connectivity.stdout }}"
+        msg: "{{ _dns_config.stdout | default('skipped') }}"
 
-    - name: Join domain using microsoft.ad.membership
+    - name: Verify domain SRV records resolve
+      ansible.windows.win_shell: |
+        $srv = Resolve-DnsName -Name _ldap._tcp.dc._msdcs.lab.cheeseburgia.com -Type SRV -ErrorAction SilentlyContinue
+        if ($srv) {
+            Write-Output "SRV record found: $($srv.NameTarget) port $($srv.Port)"
+        } else {
+            Write-Output "SRV record NOT found - domain join will fail"
+        }
+      register: _srv_check
+      changed_when: false
+      when: "'PartOfDomain=False' in _status.stdout"
+
+    - name: Show SRV check
+      ansible.builtin.debug:
+        msg: "{{ _srv_check.stdout | default('skipped') }}"
+
+    - name: Join domain
       microsoft.ad.membership:
         dns_domain_name: "{{ domain_name }}"
         domain_admin_user: "{{ domain_admin }}"
@@ -78,7 +99,7 @@
                 Write-Output "SPNs registered: $($spns.Count)"
                 $spns | ForEach-Object { Write-Output "  $_" }
             } catch {
-                Write-Output "Could not query SPNs (AD connectivity issue)"
+                Write-Output "Could not query SPNs yet"
             }
         } else {
             Write-Output "FAILED: $($cs.Name) is still in $($cs.Domain)"
