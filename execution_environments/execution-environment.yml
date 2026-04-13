@@ -7,6 +7,8 @@ images:
 
 options:
   package_manager_path: /usr/bin/microdnf
+  python_interpreter:
+    python_path: /usr/bin/python3.12
 
 dependencies:
   galaxy:
@@ -27,8 +29,8 @@ additional_build_steps:
           microdnf install -y --nodocs --setopt install_weak_deps=0 \
             --disablerepo='ubi-*' \
             --enablerepo='centos9-*' \
-            libvirt-libs libvirt-devel && \
-          pip3 install --no-cache-dir libvirt-python && \
+            libvirt-libs libvirt-devel krb5-devel krb5-libs && \
+          pip3 install --no-cache-dir libvirt-python 'pywinrm[kerberos]' && \
           rm -f /etc/yum.repos.d/centos9-*.repo
   prepend_final:
     - |
@@ -37,5 +39,5 @@ additional_build_steps:
           microdnf install -y --nodocs --setopt install_weak_deps=0 \
             --disablerepo='ubi-*' \
             --enablerepo='centos9-*' \
-            libvirt-libs && \
+            libvirt-libs krb5-workstation krb5-libs && \
           rm -f /etc/yum.repos.d/centos9-*.repo

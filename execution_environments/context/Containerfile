@@ -1,5 +1,5 @@
 ARG EE_BASE_IMAGE="registry.redhat.io/ansible-automation-platform-26/ee-minimal-rhel9:latest"
-ARG PYCMD="/usr/bin/python3"
+ARG PYCMD="/usr/bin/python3.12"
 ARG PKGMGR_PRESERVE_CACHE=""
 ARG ANSIBLE_GALAXY_CLI_COLLECTION_OPTS=""
 ARG ANSIBLE_GALAXY_CLI_ROLE_OPTS=""
@@ -56,8 +56,8 @@ RUN microdnf install -y --nodocs --setopt install_weak_deps=0 pkgconfig gcc pyth
     microdnf install -y --nodocs --setopt install_weak_deps=0 \
       --disablerepo='ubi-*' \
       --enablerepo='centos9-*' \
-      libvirt-libs libvirt-devel && \
-    pip3 install --no-cache-dir libvirt-python && \
+      libvirt-libs libvirt-devel krb5-devel krb5-libs && \
+    pip3 install --no-cache-dir libvirt-python 'pywinrm[kerberos]' && \
     rm -f /etc/yum.repos.d/centos9-*.repo
 
 
@@ -81,7 +81,7 @@ RUN printf '[centos9-appstream]\nname=CentOS Stream 9 AppStream\nbaseurl=https:/
     microdnf install -y --nodocs --setopt install_weak_deps=0 \
       --disablerepo='ubi-*' \
       --enablerepo='centos9-*' \
-      libvirt-libs && \
+      libvirt-libs krb5-workstation krb5-libs && \
     rm -f /etc/yum.repos.d/centos9-*.repo
 
 RUN /output/scripts/check_ansible $PYCMD

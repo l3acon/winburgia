@@ -27,6 +27,7 @@ controller_templates:
     limit: "WINMEMBER:WINMEMBER2:WINMEMBER3"
     credentials:
       - Windows Machine Credential
+      - Kerberos Configuration - Cheeseburgia
     ask_variables_on_launch: true
     ask_limit_on_launch: true
 
@@ -73,6 +74,7 @@ controller_templates:
     execution_environment: Winburgia EE
     credentials:
       - Windows Machine Credential
+      - Kerberos Configuration - Cheeseburgia
     ask_variables_on_launch: true
     ask_limit_on_launch: true
 
@@ -85,6 +87,7 @@ controller_templates:
     execution_environment: Winburgia EE
     credentials:
       - Windows Machine Credential
+      - Kerberos Configuration - Cheeseburgia
     ask_variables_on_launch: true
     ask_limit_on_launch: true
     survey_enabled: true
@@ -138,6 +141,7 @@ controller_templates:
     execution_environment: Winburgia EE
     credentials:
       - Windows Machine Credential
+      - Kerberos Configuration - Cheeseburgia
     ask_variables_on_launch: true
     ask_limit_on_launch: true
 
