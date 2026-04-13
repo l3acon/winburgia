@@ -32,35 +32,32 @@
       delegate_to: localhost
       run_once: true
 
-    - name: Check domain trust and repair if needed
+    - name: Re-join domain if not joined
       ansible.windows.win_shell: |
-        Write-Output "=== Domain Trust ==="
-        Test-ComputerSecureChannel -Verbose 2>&1 | ForEach-Object { Write-Output $_ }
-        Write-Output "=== Repair Trust ==="
-        try {
+        $isDomain = (Get-WmiObject Win32_ComputerSystem).PartOfDomain
+        if (-not $isDomain) {
+            Write-Output "Not domain-joined. Re-joining..."
             $cred = New-Object System.Management.Automation.PSCredential("Administrator@LAB.CHEESEBURGIA.COM", (ConvertTo-SecureString "{{ ansible_password }}" -AsPlainText -Force))
-            Test-ComputerSecureChannel -Repair -Credential $cred -Verbose 2>&1 | ForEach-Object { Write-Output $_ }
-        } catch {
-            Write-Output "Repair failed: $_"
-        }
-        Write-Output "=== SPNs After Repair ==="
-        $comp = [adsisearcher]"(&(objectCategory=computer)(cn=$env:COMPUTERNAME))"
-        $result = $comp.FindOne()
-        if ($result) {
-            $spns = $result.Properties['serviceprincipalname']
-            if ($spns) { $spns | ForEach-Object { Write-Output $_ } }
-            else { Write-Output "Still no SPNs" }
+            Add-Computer -DomainName "lab.cheeseburgia.com" -Credential $cred -Force
+            Write-Output "Domain join initiated. Reboot required."
         } else {
-            Write-Output "Cannot query AD"
+            Write-Output "Already domain-joined"
         }
       vars:
         ansible_winrm_transport: ntlm
-      register: _trust
+      register: _join
       ignore_errors: true
 
-    - name: Show trust repair results
+    - name: Show domain join result
       ansible.builtin.debug:
-        msg: "{{ _trust.stdout }}"
+        msg: "{{ _join.stdout }}"
 
-    - name: Test WinRM Kerberos
+    - name: Reboot if domain join happened
+      ansible.windows.win_reboot:
+        reboot_timeout: 300
+      vars:
+        ansible_winrm_transport: ntlm
+      when: "'Re-joining' in _join.stdout"
+
+    - name: Test WinRM Kerberos after domain join
       ansible.windows.win_ping:
