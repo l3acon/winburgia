@@ -32,34 +32,18 @@
       delegate_to: localhost
       run_once: true
 
-    - name: Test pywinrm Kerberos without UPN
-      ansible.builtin.shell:
-        cmd: |
-          KRB5_CONFIG={{ lookup('ansible.builtin.env', 'KRB5_CONFIG') }} KRB5CCNAME=/tmp/krb5cc_0 python3.12 -c "
-          import winrm
-          try:
-              s = winrm.Session('http://{{ ansible_host }}:5985/wsman', auth=('{{ ansible_user }}', '{{ ansible_password }}'), transport='ntlm')
-              r = s.run_cmd('setspn', ['-L', '{{ inventory_hostname }}\$'])
-              print(f'NTLM(no-UPN) OK - SPNs:')
-              print(r.std_out.decode())
-          except Exception as e:
-              print(f'NTLM(no-UPN) FAIL: {e}')
-          try:
-              s = winrm.Session('http://{{ ansible_host }}:5985/wsman', auth=('{{ ansible_user }}', '{{ ansible_password }}'), transport='kerberos')
-              r = s.run_cmd('hostname')
-              print(f'KERBEROS(no-UPN) OK: {r.std_out.decode().strip()}')
-          except Exception as e:
-              print(f'KERBEROS(no-UPN) FAIL: {e}')
-          "
-      delegate_to: localhost
-      run_once: true
-      register: _test
-      ignore_errors: true
-      changed_when: false
-      no_log: false
+    - name: Get SPNs and test via NTLM
+      ansible.windows.win_shell: |
+        setspn -L $env:COMPUTERNAME
+        Write-Output "---"
+        Get-WSManInstance -ResourceURI winrm/config/service/auth
+      vars:
+        ansible_winrm_transport: ntlm
+      register: _winconfig
 
-    - name: Show results
+    - name: Show SPNs and auth config
       ansible.builtin.debug:
-        msg: "{{ _test.stdout }}"
-      delegate_to: localhost
-      run_once: true
+        msg: "{{ _winconfig.stdout }}"
+
+    - name: Test WinRM Kerberos
+      ansible.windows.win_ping:
