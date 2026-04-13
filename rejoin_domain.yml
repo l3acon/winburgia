@@ -1,8 +1,38 @@
 ---
-- name: Clean up stale AD computer objects from the DC
+- name: Prepare DC - fix DNS and clean stale AD objects
   hosts: WINAD
   gather_facts: false
   tasks:
+    - name: Check and fix DNS SRV records
+      ansible.windows.win_shell: |
+        $dns_running = (Get-Service DNS -ErrorAction SilentlyContinue).Status
+        Write-Output "DNS service: $dns_running"
+
+        $srv = Resolve-DnsName -Name _ldap._tcp.dc._msdcs.lab.cheeseburgia.com -Type SRV -Server 127.0.0.1 -ErrorAction SilentlyContinue
+        if ($srv) {
+            Write-Output "SRV records exist: $($srv.NameTarget)"
+        } else {
+            Write-Output "SRV records missing - registering..."
+            # Force DC to re-register all DNS records
+            nltest /dsregdns
+            ipconfig /registerdns
+            # Wait for DNS registration
+            Start-Sleep -Seconds 5
+            $srv2 = Resolve-DnsName -Name _ldap._tcp.dc._msdcs.lab.cheeseburgia.com -Type SRV -Server 127.0.0.1 -ErrorAction SilentlyContinue
+            if ($srv2) {
+                Write-Output "SRV records now registered: $($srv2.NameTarget)"
+            } else {
+                Write-Output "SRV registration failed - check DNS zone config"
+                # List DNS zones
+                Get-DnsServerZone | Format-Table ZoneName, ZoneType, IsAutoCreated -AutoSize
+            }
+        }
+      register: _dns_fix
+
+    - name: Show DNS status
+      ansible.builtin.debug:
+        msg: "{{ _dns_fix.stdout }}"
+
     - name: Remove stale computer accounts from AD
       ansible.windows.win_shell: |
         Import-Module ActiveDirectory
