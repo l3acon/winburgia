@@ -93,27 +93,33 @@
       ansible.builtin.debug:
         msg: "{{ _dns_config.stdout | default('skipped') }}"
 
-    - name: Verify domain SRV records resolve
+    - name: Test DNS and SRV resolution
       ansible.windows.win_shell: |
-        $srv = Resolve-DnsName -Name _ldap._tcp.dc._msdcs.lab.cheeseburgia.com -Type SRV -ErrorAction SilentlyContinue
-        if ($srv) {
-            Write-Output "SRV record found: $($srv.NameTarget) port $($srv.Port)"
-        } else {
-            Write-Output "SRV record NOT found - domain join will fail"
+        ipconfig /flushdns | Out-Null
+        $dns53 = Test-NetConnection -ComputerName {{ dc_ip }} -Port 53 -WarningAction SilentlyContinue
+        Write-Output "DNS port 53 reachable: $($dns53.TcpTestSucceeded)"
+        try {
+            $srv = Resolve-DnsName -Name _ldap._tcp.dc._msdcs.lab.cheeseburgia.com -Type SRV -Server {{ dc_ip }} -ErrorAction Stop
+            Write-Output "SRV OK: $($srv.NameTarget)"
+        } catch {
+            Write-Output "SRV FAIL: $_"
+            Write-Output "--- nslookup fallback ---"
+            nslookup -type=SRV _ldap._tcp.dc._msdcs.lab.cheeseburgia.com {{ dc_ip }} 2>&1
         }
       register: _srv_check
       changed_when: false
       when: "'PartOfDomain=False' in _status.stdout"
 
-    - name: Show SRV check
+    - name: Show DNS diagnostics
       ansible.builtin.debug:
         msg: "{{ _srv_check.stdout | default('skipped') }}"
 
-    - name: Join domain
+    - name: Join domain using domain_ou_path to specify DC
       microsoft.ad.membership:
         dns_domain_name: "{{ domain_name }}"
         domain_admin_user: "{{ domain_admin }}"
         domain_admin_password: "{{ domain_password }}"
+        domain_server: "{{ dc_ip }}"
         state: domain
         reboot: true
       when: "'PartOfDomain=False' in _status.stdout"
