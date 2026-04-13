@@ -1,31 +1,40 @@
 ---
-- name: Check WinRM config via NTLM
-  hosts: all
-  gather_facts: false
-  vars:
-    ansible_winrm_transport: ntlm
-  tasks:
-    - name: Get WinRM auth config
-      ansible.windows.win_shell: |
-        winrm get winrm/config/service/auth
-      register: _auth
-
-    - name: Show WinRM auth config
-      ansible.builtin.debug:
-        msg: "{{ _auth.stdout }}"
-
-    - name: Get WinRM listeners
-      ansible.windows.win_shell: |
-        winrm enumerate winrm/config/listener
-      register: _listeners
-
-    - name: Show WinRM listeners
-      ansible.builtin.debug:
-        msg: "{{ _listeners.stdout }}"
-
 - name: Test Kerberos WinRM connection
   hosts: all
   gather_facts: false
   tasks:
-    - name: Kerberos win_ping
+    - name: Check ansible_user
+      ansible.builtin.debug:
+        msg: "ansible_user={{ ansible_user | default('not set') }}"
+      delegate_to: localhost
+      run_once: true
+
+    - name: Pre-kinit for Kerberos
+      ansible.builtin.shell:
+        cmd: "echo '{{ ansible_password }}' | KRB5_CONFIG={{ lookup('ansible.builtin.env', 'KRB5_CONFIG') }} kinit {{ ansible_user }} 2>&1"
+      delegate_to: localhost
+      run_once: true
+      register: _kinit
+      changed_when: false
+      no_log: false
+
+    - name: Verify ticket
+      ansible.builtin.shell:
+        cmd: "KRB5_CONFIG={{ lookup('ansible.builtin.env', 'KRB5_CONFIG') }} klist 2>&1"
+      delegate_to: localhost
+      run_once: true
+      register: _klist
+      changed_when: false
+
+    - name: Show ticket
+      ansible.builtin.debug:
+        msg: "{{ _klist.stdout }}"
+      delegate_to: localhost
+      run_once: true
+
+    - name: Test WinRM with kerberos
       ansible.windows.win_ping:
+
+    - name: Kerberos connection successful
+      ansible.builtin.debug:
+        msg: "Kerberos WinRM connection to {{ inventory_hostname }} succeeded!"
