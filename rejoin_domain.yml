@@ -93,52 +93,31 @@
       ansible.builtin.debug:
         msg: "{{ _dns_config.stdout | default('skipped') }}"
 
-    - name: Full connectivity and domain join diagnostics
-      ansible.windows.win_shell: |
-        ipconfig /flushdns | Out-Null
-
-        # Test all ports needed for domain join
-        foreach ($port in @(53, 88, 135, 389, 445, 636, 3268)) {
-            $t = Test-NetConnection -ComputerName {{ dc_ip }} -Port $port -WarningAction SilentlyContinue
-            Write-Output "Port $port : $($t.TcpTestSucceeded)"
-        }
-
-        # SRV resolution
-        try {
-            $srv = Resolve-DnsName -Name _ldap._tcp.dc._msdcs.lab.cheeseburgia.com -Type SRV -Server {{ dc_ip }} -ErrorAction Stop
-            Write-Output "SRV OK: $($srv.NameTarget)"
-        } catch {
-            Write-Output "SRV FAIL: $_"
-        }
-
-        # Try nltest to locate DC
-        Write-Output "--- nltest /dsgetdc ---"
-        nltest /dsgetdc:lab.cheeseburgia.com 2>&1
-      register: _diag
-      changed_when: false
-      when: "'PartOfDomain=False' in _status.stdout"
-
-    - name: Show diagnostics
-      ansible.builtin.debug:
-        msg: "{{ _diag.stdout | default('skipped') }}"
-
-    - name: Join domain with Add-Computer
+    - name: Join domain with Add-Computer using Server parameter
       ansible.windows.win_shell: |
         $ErrorActionPreference = 'Stop'
+        ipconfig /flushdns | Out-Null
         $cred = New-Object System.Management.Automation.PSCredential(
           '{{ domain_admin }}',
           (ConvertTo-SecureString '{{ domain_password }}' -AsPlainText -Force)
         )
         try {
-            Add-Computer -DomainName '{{ domain_name }}' -Credential $cred -Force -Verbose *>&1
+            Add-Computer -DomainName '{{ domain_name }}' -Server 'winad.{{ domain_name }}' -Credential $cred -Force -Verbose *>&1
             Write-Output "SUCCESS: Domain join completed"
         } catch {
             Write-Output "FAILED: $($_.Exception.Message)"
-            Write-Output "Inner: $($_.Exception.InnerException.Message)"
+            if ($_.Exception.InnerException) {
+                Write-Output "Inner: $($_.Exception.InnerException.Message)"
+            }
             throw
         }
       when: "'PartOfDomain=False' in _status.stdout"
       register: _join
+
+    - name: Show join result
+      ansible.builtin.debug:
+        msg: "{{ _join.stdout | default('skipped') }}"
+      when: _join is not skipped
 
     - name: Reboot after join
       ansible.windows.win_reboot:
