@@ -1,0 +1,43 @@
+---
+- name: Debug Kerberos configuration
+  hosts: all
+  gather_facts: false
+  tasks:
+    - name: Show KRB5_CONFIG env var
+      ansible.builtin.debug:
+        msg: "KRB5_CONFIG={{ lookup('ansible.builtin.env', 'KRB5_CONFIG') }}"
+      delegate_to: localhost
+      run_once: true
+
+    - name: Show krb5.conf content
+      ansible.builtin.slurp:
+        src: "{{ lookup('ansible.builtin.env', 'KRB5_CONFIG') }}"
+      delegate_to: localhost
+      run_once: true
+      register: _krb5_conf
+      when: lookup('ansible.builtin.env', 'KRB5_CONFIG') | length > 0
+
+    - name: Display krb5.conf
+      ansible.builtin.debug:
+        msg: "{{ _krb5_conf.content | b64decode }}"
+      delegate_to: localhost
+      run_once: true
+      when: _krb5_conf is not skipped
+
+    - name: Test kinit
+      ansible.builtin.command:
+        cmd: kinit --version
+      delegate_to: localhost
+      run_once: true
+      register: _kinit
+      ignore_errors: true
+      changed_when: false
+
+    - name: Show kinit result
+      ansible.builtin.debug:
+        msg: "{{ _kinit }}"
+      delegate_to: localhost
+      run_once: true
+
+    - name: Test WinRM connection
+      ansible.windows.win_ping:
