@@ -1,58 +1,31 @@
 ---
-- name: Debug Kerberos configuration
+- name: Check WinRM config via NTLM
+  hosts: all
+  gather_facts: false
+  vars:
+    ansible_winrm_transport: ntlm
+  tasks:
+    - name: Get WinRM auth config
+      ansible.windows.win_shell: |
+        winrm get winrm/config/service/auth
+      register: _auth
+
+    - name: Show WinRM auth config
+      ansible.builtin.debug:
+        msg: "{{ _auth.stdout }}"
+
+    - name: Get WinRM listeners
+      ansible.windows.win_shell: |
+        winrm enumerate winrm/config/listener
+      register: _listeners
+
+    - name: Show WinRM listeners
+      ansible.builtin.debug:
+        msg: "{{ _listeners.stdout }}"
+
+- name: Test Kerberos WinRM connection
   hosts: all
   gather_facts: false
   tasks:
-    - name: Show KRB5_CONFIG env var
-      ansible.builtin.debug:
-        msg: "KRB5_CONFIG={{ lookup('ansible.builtin.env', 'KRB5_CONFIG') }}"
-      delegate_to: localhost
-      run_once: true
-
-    - name: Show raw krb5.conf via cat
-      ansible.builtin.command:
-        cmd: "cat {{ lookup('ansible.builtin.env', 'KRB5_CONFIG') }}"
-      delegate_to: localhost
-      run_once: true
-      register: _krb5_cat
-      changed_when: false
-
-    - name: Display krb5.conf
-      ansible.builtin.debug:
-        msg: "{{ _krb5_cat.stdout }}"
-      delegate_to: localhost
-      run_once: true
-
-    - name: Resolve KDC hostname
-      ansible.builtin.command:
-        cmd: getent hosts winad.lab.cheeseburgia.com
-      delegate_to: localhost
-      run_once: true
-      register: _dns
-      ignore_errors: true
-      changed_when: false
-
-    - name: Show DNS result
-      ansible.builtin.debug:
-        msg: "{{ _dns.stdout | default(_dns.stderr) }}"
-      delegate_to: localhost
-      run_once: true
-
-    - name: Try kinit with explicit KRB5_CONFIG
-      ansible.builtin.shell:
-        cmd: "echo '{{ ansible_password }}' | KRB5_CONFIG={{ lookup('ansible.builtin.env', 'KRB5_CONFIG') }} kinit {{ ansible_user }} 2>&1"
-      delegate_to: localhost
-      run_once: true
-      register: _kinit_test
-      ignore_errors: true
-      changed_when: false
-      no_log: false
-
-    - name: Show kinit result
-      ansible.builtin.debug:
-        msg: "rc={{ _kinit_test.rc }} stdout={{ _kinit_test.stdout }} stderr={{ _kinit_test.stderr }}"
-      delegate_to: localhost
-      run_once: true
-
-    - name: Test WinRM connection
+    - name: Kerberos win_ping
       ansible.windows.win_ping:
