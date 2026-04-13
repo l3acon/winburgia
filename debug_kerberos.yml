@@ -32,36 +32,40 @@
       delegate_to: localhost
       run_once: true
 
-    - name: Test pywinrm Kerberos directly
+    - name: Test pywinrm with negotiate transport
       ansible.builtin.shell:
         cmd: |
-          KRB5_CONFIG={{ lookup('ansible.builtin.env', 'KRB5_CONFIG') }} python3.12 -c "
-          import os, traceback
-          os.environ['KRB5CCNAME'] = '/tmp/krb5cc_0'
-          import winrm
+          KRB5_CONFIG={{ lookup('ansible.builtin.env', 'KRB5_CONFIG') }} KRB5CCNAME=/tmp/krb5cc_0 python3.12 -c "
+          import traceback, winrm
           try:
-              s = winrm.Session('http://{{ ansible_host }}:5985/wsman', auth=('{{ ansible_user }}@LAB.CHEESEBURGIA.COM', '{{ ansible_password }}'), transport='kerberos')
-              r = s.run_cmd('hostname')
-              print(f'SUCCESS: {r.std_out.decode().strip()}')
+              s = winrm.Session('http://{{ ansible_host }}:5985/wsman', auth=('{{ ansible_user }}@LAB.CHEESEBURGIA.COM', '{{ ansible_password }}'), transport='ntlm')
+              r = s.run_cmd('setspn', ['-L', '{{ inventory_hostname }}\$'])
+              print(f'NTLM OK - SPNs:')
+              print(r.std_out.decode())
           except Exception as e:
-              traceback.print_exc()
+              print(f'NTLM FAIL: {e}')
+          try:
+              s = winrm.Session('http://{{ ansible_host }}:5985/wsman', auth=('{{ ansible_user }}@LAB.CHEESEBURGIA.COM', '{{ ansible_password }}'), transport='kerberos', service='WSMAN')
+              r = s.run_cmd('hostname')
+              print(f'KERBEROS(WSMAN) OK: {r.std_out.decode().strip()}')
+          except Exception as e:
+              print(f'KERBEROS(WSMAN) FAIL: {e}')
+          try:
+              s = winrm.Session('http://{{ ansible_host }}:5985/wsman', auth=('{{ ansible_user }}@LAB.CHEESEBURGIA.COM', '{{ ansible_password }}'), transport='kerberos', service='HTTP')
+              r = s.run_cmd('hostname')
+              print(f'KERBEROS(HTTP) OK: {r.std_out.decode().strip()}')
+          except Exception as e:
+              print(f'KERBEROS(HTTP) FAIL: {e}')
           "
       delegate_to: localhost
       run_once: true
-      register: _pywinrm_test
+      register: _test
       ignore_errors: true
       changed_when: false
       no_log: false
 
-    - name: Show pywinrm result
+    - name: Show results
       ansible.builtin.debug:
-        msg: "stdout={{ _pywinrm_test.stdout }} stderr={{ _pywinrm_test.stderr }}"
+        msg: "{{ _test.stdout }}"
       delegate_to: localhost
       run_once: true
-
-    - name: Test WinRM with kerberos
-      ansible.windows.win_ping:
-
-    - name: Kerberos connection successful
-      ansible.builtin.debug:
-        msg: "Kerberos WinRM connection to {{ inventory_hostname }} succeeded!"
