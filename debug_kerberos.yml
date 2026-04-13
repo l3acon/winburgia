@@ -32,6 +32,33 @@
       delegate_to: localhost
       run_once: true
 
+    - name: Test pywinrm Kerberos directly
+      ansible.builtin.shell:
+        cmd: |
+          KRB5_CONFIG={{ lookup('ansible.builtin.env', 'KRB5_CONFIG') }} python3.12 -c "
+          import os, traceback
+          os.environ['KRB5CCNAME'] = '/tmp/krb5cc_0'
+          import winrm
+          try:
+              s = winrm.Session('http://{{ ansible_host }}:5985/wsman', auth=('{{ ansible_user }}@LAB.CHEESEBURGIA.COM', '{{ ansible_password }}'), transport='kerberos')
+              r = s.run_cmd('hostname')
+              print(f'SUCCESS: {r.std_out.decode().strip()}')
+          except Exception as e:
+              traceback.print_exc()
+          "
+      delegate_to: localhost
+      run_once: true
+      register: _pywinrm_test
+      ignore_errors: true
+      changed_when: false
+      no_log: false
+
+    - name: Show pywinrm result
+      ansible.builtin.debug:
+        msg: "stdout={{ _pywinrm_test.stdout }} stderr={{ _pywinrm_test.stderr }}"
+      delegate_to: localhost
+      run_once: true
+
     - name: Test WinRM with kerberos
       ansible.windows.win_ping:
 
