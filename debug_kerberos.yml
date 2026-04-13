@@ -32,18 +32,36 @@
       delegate_to: localhost
       run_once: true
 
-    - name: Get SPNs and test via NTLM
+    - name: Get AD computer SPNs
       ansible.windows.win_shell: |
-        setspn -L $env:COMPUTERNAME
-        Write-Output "---"
-        Get-WSManInstance -ResourceURI winrm/config/service/auth
+        $comp = [adsisearcher]"(&(objectCategory=computer)(cn=$env:COMPUTERNAME))"
+        $result = $comp.FindOne()
+        $spns = $result.Properties['serviceprincipalname']
+        if ($spns) {
+            $spns | ForEach-Object { Write-Output $_ }
+        } else {
+            Write-Output "NO SPNs FOUND"
+        }
       vars:
         ansible_winrm_transport: ntlm
-      register: _winconfig
+      register: _spns
 
-    - name: Show SPNs and auth config
+    - name: Show SPNs
       ansible.builtin.debug:
-        msg: "{{ _winconfig.stdout }}"
+        msg: "{{ _spns.stdout }}"
+
+    - name: Register WSMAN SPN if needed
+      ansible.windows.win_shell: |
+        setspn -S HTTP/$env:COMPUTERNAME $env:COMPUTERNAME
+        setspn -S HTTP/$env:COMPUTERNAME.lab.cheeseburgia.com $env:COMPUTERNAME
+      vars:
+        ansible_winrm_transport: ntlm
+      when: "'HTTP/' not in _spns.stdout"
+      register: _spn_reg
+
+    - name: Show SPN registration result
+      ansible.builtin.debug:
+        msg: "{{ _spn_reg.stdout | default('skipped - SPNs already registered') }}"
 
     - name: Test WinRM Kerberos
       ansible.windows.win_ping:
