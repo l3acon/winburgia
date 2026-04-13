@@ -114,12 +114,11 @@
       ansible.builtin.debug:
         msg: "{{ _srv_check.stdout | default('skipped') }}"
 
-    - name: Join domain using domain_ou_path to specify DC
+    - name: Join domain
       microsoft.ad.membership:
         dns_domain_name: "{{ domain_name }}"
         domain_admin_user: "{{ domain_admin }}"
         domain_admin_password: "{{ domain_password }}"
-        domain_server: "{{ dc_ip }}"
         state: domain
         reboot: true
       when: "'PartOfDomain=False' in _status.stdout"
