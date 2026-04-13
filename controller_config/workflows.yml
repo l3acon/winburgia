@@ -14,8 +14,6 @@ controller_workflows:
         unified_job_template: "Winburgia | Snapshot VM"
         success_nodes:
           - patch
-        failure_nodes: []
-        always_nodes: []
 
       - identifier: patch
         unified_job_template: "Winburgia | Patch Windows"
@@ -23,26 +21,17 @@ controller_workflows:
           - provision_report_server
         failure_nodes:
           - revert
-        always_nodes: []
 
       - identifier: provision_report_server
         unified_job_template: "Winburgia | Provision Report Server"
         success_nodes:
           - deploy_report
-        failure_nodes: []
-        always_nodes: []
 
       - identifier: deploy_report
         unified_job_template: "Winburgia | Deploy Patch Report"
-        success_nodes: []
-        failure_nodes: []
-        always_nodes: []
 
       - identifier: revert
         unified_job_template: "Winburgia | Revert Snapshot"
-        success_nodes: []
-        failure_nodes: []
-        always_nodes: []
 
   - name: "Winburgia | STIG Compliance Workflow"
     description: Apply STIG hardening, provision report server, serve compliance report
@@ -54,18 +43,11 @@ controller_workflows:
         limit: "WINMEMBER:WINMEMBER2:WINMEMBER3"
         success_nodes:
           - provision_report_server
-        failure_nodes: []
-        always_nodes: []
 
       - identifier: provision_report_server
         unified_job_template: "Winburgia | Provision Report Server"
         success_nodes:
           - deploy_stig_report
-        failure_nodes: []
-        always_nodes: []
 
       - identifier: deploy_stig_report
         unified_job_template: "Winburgia | Deploy STIG Report"
-        success_nodes: []
-        failure_nodes: []
-        always_nodes: []

@@ -37,7 +37,7 @@
   pre_tasks:
     - name: Load config-as-code variables
       ansible.builtin.include_vars:
-        dir: group_vars/all
+        dir: controller_config
         extensions:
           - yml
 
