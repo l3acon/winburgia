@@ -1,0 +1,83 @@
+---
+- name: Re-join Windows hosts to the domain
+  hosts: all
+  gather_facts: false
+  vars:
+    ansible_winrm_transport: ntlm
+    domain_name: lab.cheeseburgia.com
+    domain_admin: "Administrator@LAB.CHEESEBURGIA.COM"
+    domain_password: "{{ ansible_password }}"
+  tasks:
+    - name: Check domain membership
+      ansible.windows.win_shell: |
+        $cs = Get-WmiObject Win32_ComputerSystem
+        [PSCustomObject]@{
+          PartOfDomain = $cs.PartOfDomain
+          Domain = $cs.Domain
+          ComputerName = $cs.Name
+        } | ConvertTo-Json
+      register: _domain_status
+      changed_when: false
+
+    - name: Parse domain status
+      ansible.builtin.set_fact:
+        domain_info: "{{ _domain_status.stdout | from_json }}"
+
+    - name: Show current domain status
+      ansible.builtin.debug:
+        msg: "{{ inventory_hostname }}: PartOfDomain={{ domain_info.PartOfDomain }}, Domain={{ domain_info.Domain }}"
+
+    - name: Remove stale AD object and rejoin domain
+      ansible.windows.win_shell: |
+        $cred = New-Object System.Management.Automation.PSCredential(
+          "{{ domain_admin }}",
+          (ConvertTo-SecureString "{{ domain_password }}" -AsPlainText -Force)
+        )
+        # Remove any stale computer object, then join fresh
+        try {
+            Remove-Computer -UnjoinDomainCredential $cred -Force -ErrorAction SilentlyContinue
+        } catch {}
+        Add-Computer -DomainName "{{ domain_name }}" -Credential $cred -Force -Options JoinWithNewName,AccountCreate
+        Write-Output "Domain join completed for $env:COMPUTERNAME"
+      when: not domain_info.PartOfDomain
+      register: _join
+
+    - name: Show join result
+      ansible.builtin.debug:
+        msg: "{{ _join.stdout | default('Already domain-joined') }}"
+
+    - name: Reboot after domain join
+      ansible.windows.win_reboot:
+        reboot_timeout: 600
+        post_reboot_delay: 30
+      when: _join is changed
+
+    - name: Verify domain membership after reboot
+      ansible.windows.win_shell: |
+        $cs = Get-WmiObject Win32_ComputerSystem
+        if ($cs.PartOfDomain) {
+            Write-Output "SUCCESS: $($cs.Name) is joined to $($cs.Domain)"
+            $spns = ([adsisearcher]"(&(objectCategory=computer)(cn=$env:COMPUTERNAME))").FindOne().Properties['serviceprincipalname']
+            Write-Output "SPNs: $($spns -join ', ')"
+        } else {
+            Write-Output "FAILED: $($cs.Name) is NOT domain-joined"
+        }
+      register: _verify
+      changed_when: false
+      when: _join is changed
+
+    - name: Show verification
+      ansible.builtin.debug:
+        msg: "{{ _verify.stdout | default('No rejoin was needed') }}"
+
+- name: Validate Kerberos connectivity
+  hosts: all
+  gather_facts: false
+  tasks:
+    - name: Kerberos win_ping
+      ansible.windows.win_ping:
+      register: _kerberos_ping
+
+    - name: Kerberos connection confirmed
+      ansible.builtin.debug:
+        msg: "{{ inventory_hostname }}: Kerberos WinRM connection successful!"
