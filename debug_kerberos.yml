@@ -32,30 +32,24 @@
       delegate_to: localhost
       run_once: true
 
-    - name: Test pywinrm with negotiate transport
+    - name: Test pywinrm Kerberos without UPN
       ansible.builtin.shell:
         cmd: |
           KRB5_CONFIG={{ lookup('ansible.builtin.env', 'KRB5_CONFIG') }} KRB5CCNAME=/tmp/krb5cc_0 python3.12 -c "
-          import traceback, winrm
+          import winrm
           try:
-              s = winrm.Session('http://{{ ansible_host }}:5985/wsman', auth=('{{ ansible_user }}@LAB.CHEESEBURGIA.COM', '{{ ansible_password }}'), transport='ntlm')
+              s = winrm.Session('http://{{ ansible_host }}:5985/wsman', auth=('{{ ansible_user }}', '{{ ansible_password }}'), transport='ntlm')
               r = s.run_cmd('setspn', ['-L', '{{ inventory_hostname }}\$'])
-              print(f'NTLM OK - SPNs:')
+              print(f'NTLM(no-UPN) OK - SPNs:')
               print(r.std_out.decode())
           except Exception as e:
-              print(f'NTLM FAIL: {e}')
+              print(f'NTLM(no-UPN) FAIL: {e}')
           try:
-              s = winrm.Session('http://{{ ansible_host }}:5985/wsman', auth=('{{ ansible_user }}@LAB.CHEESEBURGIA.COM', '{{ ansible_password }}'), transport='kerberos', service='WSMAN')
+              s = winrm.Session('http://{{ ansible_host }}:5985/wsman', auth=('{{ ansible_user }}', '{{ ansible_password }}'), transport='kerberos')
               r = s.run_cmd('hostname')
-              print(f'KERBEROS(WSMAN) OK: {r.std_out.decode().strip()}')
+              print(f'KERBEROS(no-UPN) OK: {r.std_out.decode().strip()}')
           except Exception as e:
-              print(f'KERBEROS(WSMAN) FAIL: {e}')
-          try:
-              s = winrm.Session('http://{{ ansible_host }}:5985/wsman', auth=('{{ ansible_user }}@LAB.CHEESEBURGIA.COM', '{{ ansible_password }}'), transport='kerberos', service='HTTP')
-              r = s.run_cmd('hostname')
-              print(f'KERBEROS(HTTP) OK: {r.std_out.decode().strip()}')
-          except Exception as e:
-              print(f'KERBEROS(HTTP) FAIL: {e}')
+              print(f'KERBEROS(no-UPN) FAIL: {e}')
           "
       delegate_to: localhost
       run_once: true
